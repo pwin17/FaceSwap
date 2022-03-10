@@ -56,10 +56,15 @@ def get_facial_landmarks(img,rects):
 
 def draw_facial_landmarks(img_orig,final_shapes):
     img = img_orig.copy()
+
     # final_shapes = [final_shapes[1]]
+    count = 1
     for shape in final_shapes:
         for coord in shape:
-            cv2.circle(img,coord,2,(0,0,255,-1))
+            # cv2.circle(img,coord,2,(0,0,255,-1))
+            cv2.putText(img,str(count),coord, cv2.FONT_HERSHEY_SIMPLEX, 0.25,  (0,0,255), 1, cv2.LINE_AA)
+            count += 1
+
     return img
 
 def draw_delaunay(img_orig, subdiv, delaunay_color ) :
@@ -69,6 +74,8 @@ def draw_delaunay(img_orig, subdiv, delaunay_color ) :
     size = img.shape
     r = (0, 0, size[1], size[0])
     print("triangle0: ",triangleList[0])
+    count = 0
+    print(np.shape(triangleList), "triangle list")
     for t in triangleList :
 
         pt1 = (int(t[0]), int(t[1]))
@@ -76,9 +83,12 @@ def draw_delaunay(img_orig, subdiv, delaunay_color ) :
         pt3 = (int(t[4]), int(t[5]))
 
         if rect_contains(r, pt1) and rect_contains(r, pt2) and rect_contains(r, pt3) :
+            count += 1
             cv2.line(img, pt1, pt2, delaunay_color, 1, cv2.LINE_AA, 0)
             cv2.line(img, pt2, pt3, delaunay_color, 1, cv2.LINE_AA, 0)
             cv2.line(img, pt3, pt1, delaunay_color, 1, cv2.LINE_AA, 0)
+    
+    print("valid triangles: ",count)
     return triangleList,img
 
 def get_delaunay_triangulation(img,final_shapes):
@@ -166,6 +176,35 @@ def copyPixels(x_source,y_source,x_target,y_target,img_src,img_dst):
     return img_dst
     # cv2.waitKey()
 
+def sort_triangles(triangleList_src, src_shapes, triangleList_dst, dst_shapes):
+    dst_shapes = np.reshape(dst_shapes, (68,2))
+    src_shapes = np.reshape(src_shapes, (68,2))
+    new_triangles_src = []
+    print("dst_shapes[0]", dst_shapes[0])
+    for d in triangleList_dst:
+        pt1 = [d[0], d[1]]
+        pt2 = [d[2], d[3]]
+        pt3 = [d[4], d[5]]
+        pt1_s, pt2_s, pt3_s = [], [], []
+        
+        for i in range(len(dst_shapes)):
+            
+            if dst_shapes[i][0] == d[0] and dst_shapes[i][1] == d[1]:
+                pt1_s = src_shapes[i]
+            elif  dst_shapes[i][0] == d[2] and dst_shapes[i][1] == d[3]:
+                pt2_s = src_shapes[i]
+            elif  dst_shapes[i][0] == d[4] and dst_shapes[i][1] == d[5]:
+                pt3_s = src_shapes[i]
+        if len(pt1_s) ==0 or len(pt2_s) == 0 or len(pt3_s) == 0:
+            pass
+        else:
+            new = [pt1_s[0], pt1_s[1], pt2_s[0], pt2_s[1], pt3_s[0], pt3_s[1]]
+            new_triangles_src.append(new)
+    return new_triangles_src
+
+    
+    
+
 def check_triangulation_order(img_src,triangleList_src,img_dst,triangleList_dst):
     
     for t_s,t_d in zip(triangleList_src,triangleList_dst) :
@@ -201,18 +240,20 @@ def main():
     img_src_gray = cv2.cvtColor(img_src,cv2.COLOR_BGR2GRAY)
 
     rects= get_faces(img_src)
-    final_shapes = get_facial_landmarks(img_src_gray,rects)
+    final_shapes_src = get_facial_landmarks(img_src_gray,rects)
     # print((final_shapes[0]).shape)
     
-    landmark_img = draw_facial_landmarks(img_src,final_shapes)
-    
-    subdiv = get_delaunay_triangulation(img_src,final_shapes)
+    landmark_img_src = draw_facial_landmarks(img_src,final_shapes_src)
+    print('src landmarks: ',np.shape(final_shapes_src))
+    subdiv = get_delaunay_triangulation(img_src,final_shapes_src)
 
     triangleList_src, delaunay_img = draw_delaunay(img_src, subdiv, (255,255,255))
-    # print("len",len(triangleList_src[0]))
+    
 
-    # cv2.imshow('face landmarks',landmark_img)
-    cv2.imshow('delaunay_img',delaunay_img)
+    cv2.imshow('face landmarks',landmark_img_src)
+    if cv2.waitKey(0)==ord('q'):
+        cv2.destroyAllWindows()
+    # cv2.imshow('delaunay_img',delaunay_img)
 
     # -------------------------------------------------------
     img_dst = cv2.imread('./data/mes.jpg')
@@ -221,20 +262,34 @@ def main():
     img_dst_gray = cv2.cvtColor(img_dst,cv2.COLOR_BGR2GRAY)
 
     rects= get_faces(img_dst)
-    final_shapes = get_facial_landmarks(img_dst_gray,rects)
-    # print((final_shapes[0]).shape)
-    
-    landmark_img = draw_facial_landmarks(img_dst,final_shapes)
-    
-    subdiv = get_delaunay_triangulation(img_dst,final_shapes)
+    final_shapes_dst = get_facial_landmarks(img_dst_gray,rects)
+    print('dst landmarks: ',np.shape(final_shapes_dst))
+
+    landmark_img_dst = draw_facial_landmarks(img_dst,final_shapes_dst)
+
+    cv2.imshow('face landmarks',landmark_img_dst)
+    if cv2.waitKey(0)==ord('q'):
+        cv2.destroyAllWindows()
+  
+    subdiv = get_delaunay_triangulation(img_dst,final_shapes_dst)
 
     triangleList_dst, delaunay_img = draw_delaunay(img_dst, subdiv, (255,255,255))
+
+    triangleList_src = triangleList_src[1:]
+
+    print("len",np.shape(triangleList_src))
+    print("len",np.shape(triangleList_dst))
+
+    triangleList_src = sort_triangles(triangleList_src, final_shapes_src, triangleList_dst, final_shapes_dst)
+
+    print("len",np.shape(triangleList_src))
+    print("len",np.shape(triangleList_dst))
 
     # cv2.imshow('face landmarks_src',landmark_img)
     cv2.imshow('delaunay_img_dst',delaunay_img)
     cv2.waitKey()
 
-    check_triangulation_order(img_src,triangleList_src,img_dst,triangleList_dst)
+    check_triangulation_order(landmark_img_src,triangleList_src,landmark_img_dst,triangleList_dst)
 
     cv2.imshow('img_dst before warping:',img_dst)
 

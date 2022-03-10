@@ -1,3 +1,4 @@
+#!/usr/bin/python3
 import cv2
 import numpy as np
 import dlib
@@ -108,8 +109,12 @@ if cv2.waitKey(0)==ord('q'):
     cv2.destroyAllWindows()
 
 # reshape as points for triangulation
+
 old_shape = np.shape(source_shapes)
+print("old shape:",len(old_shape))
+print("reshape:",(source_shapes, (old_shape[0]*old_shape[1], old_shape[2])))
 source_shapes_new = np.reshape(source_shapes, (old_shape[0]*old_shape[1], old_shape[2]))
+print("source shape nes:",source_shapes_new.shape)
 source_size = (0, 0, size[1], size[0])
 subdiv  = cv2.Subdiv2D(source_size)
 for p in source_shapes_new:

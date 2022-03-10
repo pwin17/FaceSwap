@@ -69,7 +69,7 @@ def draw_delaunay(img_orig, subdiv, delaunay_color ) :
     size = img.shape
     r = (0, 0, size[1], size[0])
     print("triangle0: ",triangleList[0])
-    for t in [triangleList[0]] :
+    for t in triangleList :
 
         pt1 = (int(t[0]), int(t[1]))
         pt2 = (int(t[2]), int(t[3]))
@@ -150,22 +150,49 @@ def getSourceLocations(A, bary_coords,img_src):
         y = int(cart_coord[1]/cart_coord[2])
         x_source.append(x)
         y_source.append(y)
-        cv2.circle(img_src,(x,y),1,(0,0,255),1)
-    cv2.imshow('extraction points',img_src)
-    cv2.waitKey(0)
+        # cv2.circle(img_src,(x,y),1,(0,0,255),1)
+    # cv2.imshow('extraction points',img_src)
+    # cv2.waitKey(0)
     return x_source,y_source
 
 def copyPixels(x_source,y_source,x_target,y_target,img_src,img_dst):
-    cv2.imshow("before copying src:",img_src)
-    cv2.imshow("before copying dst:",img_dst)
+    # cv2.imshow("before copying src:",img_src)
+    # cv2.imshow("before copying dst:",img_dst)
     print("x_source:",len(x_source))
     for i in range(len(x_source)):
         img_dst[y_target[i]][x_target[i]] = img_src[y_source[i]][x_source[i]]
-    cv2.imshow("after copying src:",img_src)
-    cv2.imshow("after copying dst:",img_dst)
+    # cv2.imshow("after copying src:",img_src)
+    # cv2.imshow("after copying dst:",img_dst)
+    return img_dst
+    # cv2.waitKey()
 
-    cv2.waitKey()
+def check_triangulation_order(img_src,triangleList_src,img_dst,triangleList_dst):
+    
+    for t_s,t_d in zip(triangleList_src,triangleList_dst) :
+        img_src_copy = img_src.copy()
+        pt1 = (int(t_s[0]), int(t_s[1]))
+        pt2 = (int(t_s[2]), int(t_s[3]))
+        pt3 = (int(t_s[4]), int(t_s[5]))
 
+        # if rect_contains(r, pt1) and rect_contains(r, pt2) and rect_contains(r, pt3) :
+        cv2.line(img_src_copy, pt1, pt2, (255,0,0), 1, cv2.LINE_AA, 0)
+        cv2.line(img_src_copy, pt2, pt3, (255,0,0), 1, cv2.LINE_AA, 0)
+        cv2.line(img_src_copy, pt3, pt1, (255,0,0), 1, cv2.LINE_AA, 0)
+
+        img_dst_copy = img_dst.copy()
+        pt1d = (int(t_d[0]), int(t_d[1]))
+        pt2d= (int(t_d[2]), int(t_d[3]))
+        pt3d = (int(t_d[4]), int(t_d[5]))
+
+        # if rect_contains(r, pt1) and rect_contains(r, pt2) and rect_contains(r, pt3) :
+        cv2.line(img_dst_copy, pt1d, pt2d, (0,0,255), 1, cv2.LINE_AA, 0)
+        cv2.line(img_dst_copy, pt2d, pt3d, (0,0,255), 1, cv2.LINE_AA, 0)
+        cv2.line(img_dst_copy, pt3d, pt1d, (0,0,255), 1, cv2.LINE_AA, 0)
+        cv2.imshow('src triangles',img_src_copy)
+        cv2.imshow('dst triangles',img_dst_copy)
+
+        cv2.waitKey(0)
+        # cv2.destroyWindow('')
 
 def main():
     img_src = cv2.imread('./data/ron.jpg')
@@ -207,22 +234,26 @@ def main():
     cv2.imshow('delaunay_img_dst',delaunay_img)
     cv2.waitKey()
 
+    check_triangulation_order(img_src,triangleList_src,img_dst,triangleList_dst)
+
+    cv2.imshow('img_dst before warping:',img_dst)
 
 
     # Execute this process for every triangle:
-    B = getBarycentricMatrix(triangleList_dst[0])
-    x_target, y_target, bary_valid= calculateBarycentricCoords(img_dst,B,triangleList_dst[0])
-    # print("valid points: ")
-    # for i in range(len(x_valid)):
-    #     print(x_valid[i],y_valid[i])
-    # print("len bary valid:",len(bary_valid))
+    for i in range(len(triangleList_dst)):
+        B = getBarycentricMatrix(triangleList_dst[i])
+        x_target, y_target, bary_valid= calculateBarycentricCoords(img_dst,B,triangleList_dst[i])
+        # print("valid points: ")
+        # for i in range(len(x_valid)):
+        #     print(x_valid[i],y_valid[i])
+        # print("len bary valid:",len(bary_valid))
 
-    A = getBarycentricMatrix(triangleList_src[0])
-    x_source,y_source = getSourceLocations(A, bary_valid,img_src)
-    copyPixels(x_source,y_source,x_target,y_target,img_src,img_dst)
+        A = getBarycentricMatrix(triangleList_src[i])
+        x_source,y_source = getSourceLocations(A, bary_valid,img_src)
+        img_dst = copyPixels(x_source,y_source,x_target,y_target,img_src,img_dst)
     # print("Source X:",len(x_source))
-
-    
+    cv2.imshow('img_dst after warping:',img_dst)
+    cv2.waitKey(0)
     # print(a)
 if __name__=="__main__":
     main()

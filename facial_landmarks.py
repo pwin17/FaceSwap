@@ -202,9 +202,6 @@ def sort_triangles(triangleList_src, src_shapes, triangleList_dst, dst_shapes):
             new_triangles_src.append(new)
     return new_triangles_src
 
-    
-    
-
 def check_triangulation_order(img_src,triangleList_src,img_dst,triangleList_dst):
     
     for t_s,t_d in zip(triangleList_src,triangleList_dst) :
@@ -233,7 +230,42 @@ def check_triangulation_order(img_src,triangleList_src,img_dst,triangleList_dst)
         cv2.waitKey(0)
         # cv2.destroyWindow('')
 
+# def get_P()
+def get_TPS_params(src_shapes,dst_shapes):
+    # 68 x 2 shape
+    U = lambda r: (r**2)*np.log(r**2)
+    K = np.zeros((len(src_shapes),len(src_shapes)))
+    l = 0.00000001
+    for i in range(len(src_shapes)):
+        for j in range(len(src_shapes)):
+            K[i,j] = np.linalg.norm(src_shapes[i][:] - src_shapes[j][:])
+            K[i,j] = U(K[i,j]+l)
+    P = np.hstack((src_shapes, np.ones((len(src_shapes), 1))))
+    I = np.identity(len(src_shapes)+3)
+
+    col1 = np.vstack((K,P.T))
+    col2 = np.vstack((P, np.zeros((3,3))))
+
+    M = np.hstack((col1,col2))
+    lI = l*I
+    # print("lI shape:", np.shape(lI))
+    M = M+lI
+    Minv = np.linalg.inv(M)
+    print("M inv: ", np.shape(Minv))
+    # # [x1, x2, x3,...., xp, 0,0,0]
+    dst_x = np.hstack((dst_shapes[:,0],[0,0,0])).T
+    params_x = np.matmul(Minv,dst_x)
+    print("params_x shape:", np.shape(params_x))
+    dst_y = np.hstack((dst_shapes[:,1],[0,0,0])).T
+    params_y = np.matmul(Minv,dst_y)
+    print("params_y shape:", np.shape(params_y))
+    return params_x, params_y
+
+
 def main():
+
+    method = "TPS" #"TRI"
+
     img_src = cv2.imread('./data/ron.jpg')
     print(img_src.shape)
     img_src =cv2.resize(img_src,(500,500))
@@ -250,9 +282,9 @@ def main():
     triangleList_src, delaunay_img = draw_delaunay(img_src, subdiv, (255,255,255))
     
 
-    cv2.imshow('face landmarks',landmark_img_src)
-    if cv2.waitKey(0)==ord('q'):
-        cv2.destroyAllWindows()
+    # cv2.imshow('face landmarks',landmark_img_src)
+    # if cv2.waitKey(0)==ord('q'):
+    #     cv2.destroyAllWindows()
     # cv2.imshow('delaunay_img',delaunay_img)
 
     # -------------------------------------------------------
@@ -265,50 +297,80 @@ def main():
     final_shapes_dst = get_facial_landmarks(img_dst_gray,rects)
     print('dst landmarks: ',np.shape(final_shapes_dst))
 
+
     landmark_img_dst = draw_facial_landmarks(img_dst,final_shapes_dst)
 
-    cv2.imshow('face landmarks',landmark_img_dst)
-    if cv2.waitKey(0)==ord('q'):
-        cv2.destroyAllWindows()
-  
-    subdiv = get_delaunay_triangulation(img_dst,final_shapes_dst)
+    # cv2.imshow('face landmarks',landmark_img_dst)
+    # if cv2.waitKey(0)==ord('q'):
+    #     cv2.destroyAllWindows()
+    if method=="TRI":
+    
+        subdiv = get_delaunay_triangulation(img_dst,final_shapes_dst)
 
-    triangleList_dst, delaunay_img = draw_delaunay(img_dst, subdiv, (255,255,255))
+        triangleList_dst, delaunay_img = draw_delaunay(img_dst, subdiv, (255,255,255))
 
-    triangleList_src = triangleList_src[1:]
+        triangleList_src = triangleList_src[1:]
 
-    print("len",np.shape(triangleList_src))
-    print("len",np.shape(triangleList_dst))
+        print("len",np.shape(triangleList_src))
+        print("len",np.shape(triangleList_dst))
 
-    triangleList_src = sort_triangles(triangleList_src, final_shapes_src, triangleList_dst, final_shapes_dst)
+        triangleList_src = sort_triangles(triangleList_src, final_shapes_src, triangleList_dst, final_shapes_dst)
 
-    print("len",np.shape(triangleList_src))
-    print("len",np.shape(triangleList_dst))
+        print("len",np.shape(triangleList_src))
+        print("len",np.shape(triangleList_dst))
 
-    # cv2.imshow('face landmarks_src',landmark_img)
-    cv2.imshow('delaunay_img_dst',delaunay_img)
-    cv2.waitKey()
+        # cv2.imshow('face landmarks_src',landmark_img)
+        cv2.imshow('delaunay_img_dst',delaunay_img)
+        cv2.waitKey()
 
-    check_triangulation_order(landmark_img_src,triangleList_src,landmark_img_dst,triangleList_dst)
+        check_triangulation_order(landmark_img_src,triangleList_src,landmark_img_dst,triangleList_dst)
 
-    cv2.imshow('img_dst before warping:',img_dst)
+        cv2.imshow('img_dst before warping:',img_dst)
 
 
-    # Execute this process for every triangle:
-    for i in range(len(triangleList_dst)):
-        B = getBarycentricMatrix(triangleList_dst[i])
-        x_target, y_target, bary_valid= calculateBarycentricCoords(img_dst,B,triangleList_dst[i])
-        # print("valid points: ")
-        # for i in range(len(x_valid)):
-        #     print(x_valid[i],y_valid[i])
-        # print("len bary valid:",len(bary_valid))
+        # Execute this process for every triangle:
+        for i in range(len(triangleList_dst)):
+            B = getBarycentricMatrix(triangleList_dst[i])
+            x_target, y_target, bary_valid= calculateBarycentricCoords(img_dst,B,triangleList_dst[i])
+            # print("valid points: ")
+            # for i in range(len(x_valid)):
+            #     print(x_valid[i],y_valid[i])
+            # print("len bary valid:",len(bary_valid))
+        print(final_shapes_src[:,0])
+        exit()
+        cv2.waitKey(0)
+        # print(a)
+    elif method == "TPS":
+        
+        final_shapes_src = np.reshape(final_shapes_src, (68,2)).astype('int32')
+        final_shapes_dst = np.reshape(final_shapes_dst, (68,2)).astype('int32')
 
-        A = getBarycentricMatrix(triangleList_src[i])
-        x_source,y_source = getSourceLocations(A, bary_valid,img_src)
-        img_dst = copyPixels(x_source,y_source,x_target,y_target,img_src,img_dst)
-    # print("Source X:",len(x_source))
-    cv2.imshow('img_dst after warping:',img_dst)
-    cv2.waitKey(0)
-    # print(a)
+        src_hull = cv2.convexHull(final_shapes_src, False)
+        dst_hull = cv2.convexHull(final_shapes_dst, False)
+
+        # cv2.drawContours(img_src, [src_hull], -1, (255,0,0), 3, cv2.CHAIN_APPROX_NONE)
+        # cv2.drawContours(img_dst, [dst_hull], -1, (255,0,0), 3, cv2.CHAIN_APPROX_NONE)
+        # cv2.imshow('img_src with convex:',img_src)
+        # cv2.imshow('img_dst with convex:',img_dst)
+        # cv2.waitKey(0)
+
+        src_mask = np.zeros_like(img_src)
+        src_mask = cv2.fillPoly(src_mask, [src_hull], color =(255,255,255))
+        dst_mask = np.zeros_like(img_dst)
+        dst_mask = cv2.fillPoly(dst_mask, [dst_hull], color =(255,255,255))
+        # cv2.imshow('img_src mask:',src_mask)
+        # cv2.imshow('img_dst mask:',dst_mask)
+        # cv2.waitKey(0)
+
+        src_seg = cv2.bitwise_and(img_src,src_mask)
+        dst_seg = cv2.bitwise_and(img_dst,dst_mask)
+        # cv2.imshow('img_src seg:',src_seg)
+        # cv2.imshow('img_dst seg:',dst_seg)
+        # cv2.waitKey()
+
+        params_x, params_y = get_TPS_params(final_shapes_src, final_shapes_dst)
+        print(params_x)
+        print('shapes: ',np.shape(params_x),np.shape(params_y))
+        print(params_y)
 if __name__=="__main__":
     main()

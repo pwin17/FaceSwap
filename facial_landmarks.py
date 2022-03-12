@@ -170,6 +170,9 @@ def copyPixels(x_source,y_source,x_target,y_target,img_src,img_dst):
     # cv2.imshow("before copying dst:",img_dst)
     # print("x_source:",len(x_source))
     for i in range(len(x_source)):
+        # y_target[i] = min(max(y_target[i],0),img_dst.shape[0]-1)
+        # x_target[i] = min(max(x_target[i],0),img_dst.shape[0]-1)
+
         img_dst[y_target[i]][x_target[i]] = img_src[y_source[i]][x_source[i]]
     # cv2.imshow("after copying src:",img_src)
     # cv2.imshow("after copying dst:",img_dst)
@@ -265,47 +268,51 @@ def get_TPS_params(src_shapes,dst_shapes):
     print("params_y shape:", np.shape(params_y))
     return params_x, params_y,M
 
+
 def warp_TPS(src_shapes,dst_shapes,img_src,img_dst,src_hull,dst_hull,params_x,params_y,M):
-    # use src hull, for all points inside hull - warp them using params_x, params_y. \
-    # For these pixels, pick up values from dst and put on src
     interior_points = []
+    U = lambda r: (r**2)*np.log(r**2)
     for i in range(img_src.shape[0]):
         for j in range(img_src.shape[1]):
-            if(cv2.pointPolygonTest(src_hull,(i,j),False) == 1):
+            if(cv2.pointPolygonTest(src_hull,(i,j),False) >=0):
                 interior_points.append([i,j])
     interior_points = np.array(interior_points)
-    print("interior points like:",interior_points.shape)
-    # U = lambda r: (r**2)*np.log(r**2)
-    # K = np.zeros((len(interior_points),len(interior_points)))
-    # l = 0.00000001
-    # for i in range(len(interior_points)):
-    #     print(i)
-    #     for j in range(len(interior_points)):
-    #         K[i,j] = np.linalg.norm(interior_points[i][:] - interior_points[j][:])
-    #         K[i,j] = U(K[i,j]+l)
-    # P = np.hstack((interior_points, np.ones((len(interior_points), 1))))
-    # I = np.identity(len(interior_points)+3)
+    print("interior pts:",interior_points.shape)
+    
+    K = np.zeros((interior_points.shape[0],src_shapes.shape[0]))
+    for i in range(interior_points.shape[0]):
+        for j in range(src_shapes.shape[0]):
+            K[i,j] = np.linalg.norm(interior_points[i,:] - src_shapes[j,:]) + 0.000001
+            K[i,j] = U(K[i,j])
 
+    print("K shape:",K.shape)
+    P = np.hstack((interior_points, np.ones((len(interior_points), 1))))
+    I = np.identity(len(interior_points)+3)
+    l = 0.000001
+    print("P shape",P.shape)
     # col1 = np.vstack((K,P.T))
+    # print("col1 shape:",col1.shape)
     # col2 = np.vstack((P, np.zeros((3,3))))
-
     # M = np.hstack((col1,col2))
     # lI = l*I
-    # # print("lI shape:", np.shape(lI))
+    # print("lI shape:", np.shape(lI))
     # M = M+lI
+    params = np.vstack((params_x[:-3],params_y[:-3]))
+    # ax_x,ay_x,a1_x = params_x[-3],params_x[-2],params_x[-1]
+    # ax_y,ay_y,a1_y = params_y[-3],params_y[-2],params_y[-1]
+    print("params shape:",params.shape)
+    loc_sum1 = np.matmul(K,params.T)
+    P_params = np.vstack((params_x[-3:],params_y[-3:]))
+    loc_sum2 = np.matmul(P,P_params.T)
 
-    loc_x = np.matmul(M,params_x)
-    loc_y = np.matmul(M,params_y)
-    print("interior points",np.shape(interior_points))
-    print("loc_x ",np.shape(loc_x))
-    print("loc_y ",np.shape(loc_y))
-
-
-    # dst[locx,loc_y] = src[interior_points[0],interior_points[1]]
+    locs = loc_sum1 + loc_sum2
+    print("locs shape:",locs.shape)    
+    return locs, interior_points
+    # print("M shape:",M.shape)
 
 def main():
 
-    method = "TRI" #"TRI"
+    method = "TPS" #"TRI"
 
     img_src = cv2.imread('./data/ron.jpg')
     # print(img_src.shape)
@@ -393,9 +400,9 @@ def main():
         src_hull = cv2.convexHull(final_shapes_src, False)
         dst_hull = cv2.convexHull(final_shapes_dst, False)
         print(src_hull.shape)
-        cv2.drawContours(img_src, [src_hull], -1, (255,0,0), 3, cv2.CHAIN_APPROX_NONE)
-        cv2.drawContours(img_dst, [dst_hull], -1, (255,0,0), 3, cv2.CHAIN_APPROX_NONE)
-        cv2.imshow('img_src with convex:',img_src)
+        # cv2.drawContours(img_src, [src_hull], -1, (255,0,0), 3, cv2.CHAIN_APPROX_NONE)
+        # cv2.drawContours(img_dst, [dst_hull], -1, (255,0,0), 3, cv2.CHAIN_APPROX_NONE)
+        # cv2.imshow('img_src with convex:',img_src)
         # cv2.imshow('img_dst with convex:',img_dst)
         # cv2.waitKey(0)
         # count = 0
@@ -428,6 +435,14 @@ def main():
         # print(params_x)
         print('shapes: ',np.shape(params_x),np.shape(params_y))
         # print(params_y)
-        warp_TPS(final_shapes_src,final_shapes_dst,img_src,img_dst,src_hull,dst_hull,params_x,params_y,M)
+        
+        locs,interior_pts  = warp_TPS(final_shapes_src,final_shapes_dst,img_src,img_dst,src_hull,dst_hull,params_x,params_y,M)
+        locs = locs.astype(np.int32)
+        print(locs[:10])
+        interior_pts = interior_pts.astype(np.int32)
+        warp_TPS_img = copyPixels(x_source=interior_pts[:,0],y_source=interior_pts[:,1],x_target=locs[:,0],y_target=locs[:,1],\
+            img_src=img_src,img_dst=img_dst)
+        cv2.imshow('warp_TPS:',warp_TPS_img)
+        cv2.waitKey(0)
 if __name__=="__main__": 
     main()

@@ -282,13 +282,13 @@ def warp_TPS(src_shapes,dst_shapes,img_src,img_dst,src_hull,dst_hull,params_x,pa
     K = np.zeros((interior_points.shape[0],src_shapes.shape[0]))
     for i in range(interior_points.shape[0]):
         for j in range(src_shapes.shape[0]):
-            K[i,j] = np.linalg.norm(interior_points[i,:] - src_shapes[j,:]) + 0.000001
+            K[i,j] = np.linalg.norm(interior_points[i,:] - src_shapes[j,:]) + 0.00000001
             K[i,j] = U(K[i,j])
 
     print("K shape:",K.shape)
     P = np.hstack((interior_points, np.ones((len(interior_points), 1))))
     I = np.identity(len(interior_points)+3)
-    l = 0.000001
+    l = 0.00000001
     print("P shape",P.shape)
     # col1 = np.vstack((K,P.T))
     # print("col1 shape:",col1.shape)
@@ -314,7 +314,7 @@ def main():
 
     method = "TPS" #"TRI"
 
-    img_src = cv2.imread('./data/ron.jpg')
+    img_src = cv2.imread('./data/mes.jpg')
     # print(img_src.shape)
     img_src =cv2.resize(img_src,(500,500))
     img_src_gray = cv2.cvtColor(img_src,cv2.COLOR_BGR2GRAY)
@@ -336,7 +336,7 @@ def main():
     # cv2.imshow('delaunay_img',delaunay_img)
 
     # -------------------------------------------------------
-    img_dst = cv2.imread('./data/mes.jpg')
+    img_dst = cv2.imread('./data/ron.jpg')
     # print(img_dst.shape)
     img_dst =cv2.resize(img_dst,(500,500))
     img_dst_gray = cv2.cvtColor(img_dst,cv2.COLOR_BGR2GRAY)
@@ -440,8 +440,8 @@ def main():
         locs = locs.astype(np.int32)
         print(locs[:10])
         interior_pts = interior_pts.astype(np.int32)
-        warp_TPS_img = copyPixels(x_source=interior_pts[:,0],y_source=interior_pts[:,1],x_target=locs[:,0],y_target=locs[:,1],\
-            img_src=img_src,img_dst=img_dst)
+        warp_TPS_img = copyPixels(x_source=locs[:,0],y_source=locs[:,1],x_target=interior_pts[:,0],y_target=interior_pts[:,1],\
+            img_src=img_dst,img_dst=img_src)
         cv2.imshow('warp_TPS:',warp_TPS_img)
         cv2.waitKey(0)
 if __name__=="__main__": 

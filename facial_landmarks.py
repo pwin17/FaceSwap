@@ -73,9 +73,9 @@ def draw_delaunay(img_orig, subdiv, delaunay_color ) :
     triangleList = subdiv.getTriangleList()
     size = img.shape
     r = (0, 0, size[1], size[0])
-    print("triangle0: ",triangleList[0])
+    # print("triangle0: ",triangleList[0])
     count = 0
-    print(np.shape(triangleList), "triangle list")
+    # print(np.shape(triangleList), "triangle list")
     for t in triangleList :
 
         pt1 = (int(t[0]), int(t[1]))
@@ -88,7 +88,7 @@ def draw_delaunay(img_orig, subdiv, delaunay_color ) :
             cv2.line(img, pt2, pt3, delaunay_color, 1, cv2.LINE_AA, 0)
             cv2.line(img, pt3, pt1, delaunay_color, 1, cv2.LINE_AA, 0)
     
-    print("valid triangles: ",count)
+    # print("valid triangles: ",count)
     return triangleList,img
 
 def get_delaunay_triangulation(img,final_shapes):
@@ -118,7 +118,7 @@ def calculateBarycentricCoords(img, B, trianglepts):
     pt2 = (int(trianglepts[2]), int(trianglepts[3]))
     pt3 = (int(trianglepts[4]), int(trianglepts[5]))
     x,y,w,h = cv2.boundingRect(np.array([pt1,pt2,pt3]))
-    print("bounding rect:",x,y,x+w,y+h)
+    # print("bounding rect:",x,y,x+w,y+h)
     
     xx,yy = np.indices((w, h))
     xx = xx + x
@@ -168,19 +168,22 @@ def getSourceLocations(A, bary_coords,img_src):
 def copyPixels(x_source,y_source,x_target,y_target,img_src,img_dst):
     # cv2.imshow("before copying src:",img_src)
     # cv2.imshow("before copying dst:",img_dst)
-    print("x_source:",len(x_source))
+    # print("x_source:",len(x_source))
     for i in range(len(x_source)):
         img_dst[y_target[i]][x_target[i]] = img_src[y_source[i]][x_source[i]]
     # cv2.imshow("after copying src:",img_src)
     # cv2.imshow("after copying dst:",img_dst)
-    return img_dst
+    # cv2.imshow("after copying src:",img_src)
+    
     # cv2.waitKey()
+    return img_dst
+
 
 def sort_triangles(triangleList_src, src_shapes, triangleList_dst, dst_shapes):
     dst_shapes = np.reshape(dst_shapes, (68,2))
     src_shapes = np.reshape(src_shapes, (68,2))
     new_triangles_src = []
-    print("dst_shapes[0]", dst_shapes[0])
+    # print("dst_shapes[0]", dst_shapes[0])
     for d in triangleList_dst:
         pt1 = [d[0], d[1]]
         pt2 = [d[2], d[3]]
@@ -236,6 +239,7 @@ def get_TPS_params(src_shapes,dst_shapes):
     U = lambda r: (r**2)*np.log(r**2)
     K = np.zeros((len(src_shapes),len(src_shapes)))
     l = 0.00000001
+    print("src shapes like:",(src_shapes).shape)
     for i in range(len(src_shapes)):
         for j in range(len(src_shapes)):
             K[i,j] = np.linalg.norm(src_shapes[i][:] - src_shapes[j][:])
@@ -259,15 +263,52 @@ def get_TPS_params(src_shapes,dst_shapes):
     dst_y = np.hstack((dst_shapes[:,1],[0,0,0])).T
     params_y = np.matmul(Minv,dst_y)
     print("params_y shape:", np.shape(params_y))
-    return params_x, params_y
+    return params_x, params_y,M
 
+def warp_TPS(src_shapes,dst_shapes,img_src,img_dst,src_hull,dst_hull,params_x,params_y,M):
+    # use src hull, for all points inside hull - warp them using params_x, params_y. \
+    # For these pixels, pick up values from dst and put on src
+    interior_points = []
+    for i in range(img_src.shape[0]):
+        for j in range(img_src.shape[1]):
+            if(cv2.pointPolygonTest(src_hull,(i,j),False) == 1):
+                interior_points.append([i,j])
+    interior_points = np.array(interior_points)
+    print("interior points like:",interior_points.shape)
+    # U = lambda r: (r**2)*np.log(r**2)
+    # K = np.zeros((len(interior_points),len(interior_points)))
+    # l = 0.00000001
+    # for i in range(len(interior_points)):
+    #     print(i)
+    #     for j in range(len(interior_points)):
+    #         K[i,j] = np.linalg.norm(interior_points[i][:] - interior_points[j][:])
+    #         K[i,j] = U(K[i,j]+l)
+    # P = np.hstack((interior_points, np.ones((len(interior_points), 1))))
+    # I = np.identity(len(interior_points)+3)
+
+    # col1 = np.vstack((K,P.T))
+    # col2 = np.vstack((P, np.zeros((3,3))))
+
+    # M = np.hstack((col1,col2))
+    # lI = l*I
+    # # print("lI shape:", np.shape(lI))
+    # M = M+lI
+
+    loc_x = np.matmul(M,params_x)
+    loc_y = np.matmul(M,params_y)
+    print("interior points",np.shape(interior_points))
+    print("loc_x ",np.shape(loc_x))
+    print("loc_y ",np.shape(loc_y))
+
+
+    # dst[locx,loc_y] = src[interior_points[0],interior_points[1]]
 
 def main():
 
-    method = "TPS" #"TRI"
+    method = "TRI" #"TRI"
 
     img_src = cv2.imread('./data/ron.jpg')
-    print(img_src.shape)
+    # print(img_src.shape)
     img_src =cv2.resize(img_src,(500,500))
     img_src_gray = cv2.cvtColor(img_src,cv2.COLOR_BGR2GRAY)
 
@@ -276,7 +317,7 @@ def main():
     # print((final_shapes[0]).shape)
     
     landmark_img_src = draw_facial_landmarks(img_src,final_shapes_src)
-    print('src landmarks: ',np.shape(final_shapes_src))
+    # print('src landmarks: ',np.shape(final_shapes_src))
     subdiv = get_delaunay_triangulation(img_src,final_shapes_src)
 
     triangleList_src, delaunay_img = draw_delaunay(img_src, subdiv, (255,255,255))
@@ -289,13 +330,13 @@ def main():
 
     # -------------------------------------------------------
     img_dst = cv2.imread('./data/mes.jpg')
-    print(img_dst.shape)
+    # print(img_dst.shape)
     img_dst =cv2.resize(img_dst,(500,500))
     img_dst_gray = cv2.cvtColor(img_dst,cv2.COLOR_BGR2GRAY)
 
     rects= get_faces(img_dst)
     final_shapes_dst = get_facial_landmarks(img_dst_gray,rects)
-    print('dst landmarks: ',np.shape(final_shapes_dst))
+    # print('dst landmarks: ',np.shape(final_shapes_dst))
 
 
     landmark_img_dst = draw_facial_landmarks(img_dst,final_shapes_dst)
@@ -309,7 +350,7 @@ def main():
 
         triangleList_dst, delaunay_img = draw_delaunay(img_dst, subdiv, (255,255,255))
 
-        triangleList_src = triangleList_src[1:]
+        # triangleList_src = triangleList_src[1:]
 
         print("len",np.shape(triangleList_src))
         print("len",np.shape(triangleList_dst))
@@ -323,10 +364,10 @@ def main():
         cv2.imshow('delaunay_img_dst',delaunay_img)
         cv2.waitKey()
 
-        check_triangulation_order(landmark_img_src,triangleList_src,landmark_img_dst,triangleList_dst)
+        # check_triangulation_order(landmark_img_src,triangleList_src,landmark_img_dst,triangleList_dst)
 
-        cv2.imshow('img_dst before warping:',img_dst)
-
+        cv2.imshow('img_dst before warping123:',img_dst)
+        cv2.waitKey(0)
 
         # Execute this process for every triangle:
         for i in range(len(triangleList_dst)):
@@ -336,8 +377,12 @@ def main():
             # for i in range(len(x_valid)):
             #     print(x_valid[i],y_valid[i])
             # print("len bary valid:",len(bary_valid))
-        print(final_shapes_src[:,0])
-        exit()
+        # print(final_shapes_src[:,0])
+            A = getBarycentricMatrix(triangleList_src[i])
+            x_source,y_source = getSourceLocations(A, bary_valid,img_src)
+            img_dst = copyPixels(x_source,y_source,x_target,y_target,img_src,img_dst)
+        # exit()
+        cv2.imshow("final warped img",img_dst)
         cv2.waitKey(0)
         # print(a)
     elif method == "TPS":
@@ -347,12 +392,23 @@ def main():
 
         src_hull = cv2.convexHull(final_shapes_src, False)
         dst_hull = cv2.convexHull(final_shapes_dst, False)
-
-        # cv2.drawContours(img_src, [src_hull], -1, (255,0,0), 3, cv2.CHAIN_APPROX_NONE)
-        # cv2.drawContours(img_dst, [dst_hull], -1, (255,0,0), 3, cv2.CHAIN_APPROX_NONE)
-        # cv2.imshow('img_src with convex:',img_src)
+        print(src_hull.shape)
+        cv2.drawContours(img_src, [src_hull], -1, (255,0,0), 3, cv2.CHAIN_APPROX_NONE)
+        cv2.drawContours(img_dst, [dst_hull], -1, (255,0,0), 3, cv2.CHAIN_APPROX_NONE)
+        cv2.imshow('img_src with convex:',img_src)
         # cv2.imshow('img_dst with convex:',img_dst)
         # cv2.waitKey(0)
+        # count = 0
+        # img_src_copy = img_src.copy()
+        # for i in range(img_src.shape[0]):
+        #     for j in range(img_src.shape[1]):
+        #         res = cv2.pointPolygonTest(src_hull,(i,j),False)
+        #         if(res==1):
+        #             count +=1
+        #             img_src_copy[j,i] = (255,0,0)
+        # cv2.imshow('inside points',img_src_copy)
+        # cv2.waitKey(0)
+        # print("inside points total:",count)
 
         src_mask = np.zeros_like(img_src)
         src_mask = cv2.fillPoly(src_mask, [src_hull], color =(255,255,255))
@@ -367,10 +423,11 @@ def main():
         # cv2.imshow('img_src seg:',src_seg)
         # cv2.imshow('img_dst seg:',dst_seg)
         # cv2.waitKey()
-
-        params_x, params_y = get_TPS_params(final_shapes_src, final_shapes_dst)
-        print(params_x)
+        # exit()
+        params_x, params_y, M = get_TPS_params(final_shapes_src, final_shapes_dst)
+        # print(params_x)
         print('shapes: ',np.shape(params_x),np.shape(params_y))
-        print(params_y)
-if __name__=="__main__":
+        # print(params_y)
+        warp_TPS(final_shapes_src,final_shapes_dst,img_src,img_dst,src_hull,dst_hull,params_x,params_y,M)
+if __name__=="__main__": 
     main()

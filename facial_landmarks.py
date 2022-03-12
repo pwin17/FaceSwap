@@ -17,12 +17,12 @@ def rect_contains(rect, point) :
 
 
 def get_faces(img):
-    altFaceDetector = dlib.get_frontal_face_detector()
-    # dnnFaceDetector = dlib.cnn_face_detection_model_v1("./packages/mmod_human_face_detector.dat")
+    # altFaceDetector = dlib.get_frontal_face_detector()
+    dnnFaceDetector = dlib.cnn_face_detection_model_v1("./packages/mmod_human_face_detector.dat")
     
     img_gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-    # rects = dnnFaceDetector(img_gray, 1)
-    rects = altFaceDetector(img_gray, 1)
+    rects = dnnFaceDetector(img_gray, 1)
+    # rects = altFaceDetector(img_gray, 1)
     # rects1 = dnnFaceDetector(img_gray, 1)
     # print(rects[0])
     # print(rects[0].bottom())
@@ -47,7 +47,7 @@ def get_facial_landmarks(img,rects):
     landmark_detector = dlib.shape_predictor("./packages/shape_predictor_68_face_landmarks.dat")
     final_shapes = []
     for rect in rects:
-        shape = landmark_detector(img,rect)
+        shape = landmark_detector(img,rect.rect)
         shape_np = np.zeros((68, 2), dtype="int")
         for i in range(0, 68):
             shape_np[i] = (shape.part(i).x, shape.part(i).y)
@@ -61,8 +61,8 @@ def draw_facial_landmarks(img_orig,final_shapes):
     count = 1
     for shape in final_shapes:
         for coord in shape:
-            # cv2.circle(img,coord,2,(0,0,255,-1))
-            cv2.putText(img,str(count),coord, cv2.FONT_HERSHEY_SIMPLEX, 0.25,  (0,0,255), 1, cv2.LINE_AA)
+            cv2.circle(img,coord,2,(0,0,255,-1))
+            # cv2.putText(img,str(count),coord, cv2.FONT_HERSHEY_SIMPLEX, 0.25,  (0,0,255), 1, cv2.LINE_AA)
             count += 1
 
     return img
@@ -359,17 +359,18 @@ def warp_TPS2(src_shapes,dst_shapes,img_src,img_dst,src_hull,dst_hull,params_x,p
 
 def main():
 
-    method = "TPS" #"TRI"
+    method = "TRI" #"TRI"
 
-    img_src = cv2.imread('./data/mes.jpg')
+    img_src = cv2.imread('./data/two_people.jpg')
     img_src_original = img_src.copy()
     # print(img_src.shape)
-    img_src =cv2.resize(img_src,(500,500))
+    # img_src =cv2.resize(img_src,(500,500))
     img_src_original = img_src.copy()
     img_src_gray = cv2.cvtColor(img_src,cv2.COLOR_BGR2GRAY)
 
     rects= get_faces(img_src)
-    final_shapes_src = get_facial_landmarks(img_src_gray,rects)
+
+    final_shapes_src = get_facial_landmarks(img_src_gray,[rects[0]])
     # print((final_shapes[0]).shape)
     
     landmark_img_src = draw_facial_landmarks(img_src,final_shapes_src)
@@ -379,28 +380,29 @@ def main():
     triangleList_src, delaunay_img = draw_delaunay(img_src, subdiv, (255,255,255))
     
 
-    # cv2.imshow('face landmarks',landmark_img_src)
+    # cv2.imshow('src face landmarks',landmark_img_src)
     # if cv2.waitKey(0)==ord('q'):
     #     cv2.destroyAllWindows()
     # cv2.imshow('delaunay_img',delaunay_img)
 
     # -------------------------------------------------------
-    img_dst = cv2.imread('./data/ron.jpg')
+    img_dst = cv2.imread('./data/two_people.jpg')
     # print(img_dst.shape)
-    img_dst =cv2.resize(img_dst,(500,500))
+    # img_dst =cv2.resize(img_dst,(500,500))
     img_dst_original = img_dst.copy()
     img_dst_gray = cv2.cvtColor(img_dst,cv2.COLOR_BGR2GRAY)
 
     rects= get_faces(img_dst)
-    final_shapes_dst = get_facial_landmarks(img_dst_gray,rects)
+    final_shapes_dst = get_facial_landmarks(img_dst_gray,[rects[1]])
     # print('dst landmarks: ',np.shape(final_shapes_dst))
 
 
     landmark_img_dst = draw_facial_landmarks(img_dst,final_shapes_dst)
 
-    # cv2.imshow('face landmarks',landmark_img_dst)
+    # cv2.imshow('dst face landmarks',landmark_img_dst)
     # if cv2.waitKey(0)==ord('q'):
     #     cv2.destroyAllWindows()
+
     if method=="TRI":
     
         subdiv = get_delaunay_triangulation(img_dst,final_shapes_dst)

@@ -19,9 +19,12 @@ def rect_contains(rect, point) :
 def get_faces(img):
     # altFaceDetector = dlib.get_frontal_face_detector()
     dnnFaceDetector = dlib.cnn_face_detection_model_v1("./packages/mmod_human_face_detector.dat")
-    
+    print('loaded detector')
     img_gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    cv2.imshow('img dnn',img_gray)
+    cv2.waitKey(0)
     rects = dnnFaceDetector(img_gray, 1)
+    print('rects loaded')
     # rects = altFaceDetector(img_gray, 1)
     # rects1 = dnnFaceDetector(img_gray, 1)
     # print(rects[0])
@@ -364,14 +367,15 @@ def main():
 
     img_src = cv2.imread('./data/two_people.jpg')
     img_src_original = img_src.copy()
-
+    cv2.imshow('img_src',img_src)
+    cv2.waitKey(0)
     # print(img_src.shape)
     # img_src =cv2.resize(img_src,(500,500))
-    img_src_original = img_src.copy()
+    # img_src_original = img_src.copy()
     img_src_gray = cv2.cvtColor(img_src,cv2.COLOR_BGR2GRAY)
 
     rects= get_faces(img_src)
-
+    print('rects obtained')
     final_shapes_src = get_facial_landmarks(img_src_gray,[rects[0]])
     # print((final_shapes[0]).shape)
     
@@ -382,7 +386,7 @@ def main():
     triangleList_src, delaunay_img = draw_delaunay(img_src, subdiv, (255,255,255))
     
 
-    # cv2.imshow('src face landmarks',landmark_img_src)
+    cv2.imshow('src face landmarks',landmark_img_src)
     # if cv2.waitKey(0)==ord('q'):
     #     cv2.destroyAllWindows()
     # cv2.imshow('delaunay_img',delaunay_img)

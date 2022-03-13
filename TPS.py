@@ -37,6 +37,9 @@ def get_TPS_params(src_shapes,dst_shapes):
 
 def warp_TPS(src_shapes,dst_shapes,img_src,img_dst,src_hull,dst_hull,params_x,params_y,M):
     interior_points = []
+    cv2.imshow("warp_TPS src:",img_src)
+    cv2.imshow("warp_TPS dst:",img_dst)
+    cv2.waitKey()
     U = lambda r: (r**2)*np.log(r**2)
     for i in range(img_src.shape[0]):
         for j in range(img_src.shape[1]):
@@ -49,7 +52,7 @@ def warp_TPS(src_shapes,dst_shapes,img_src,img_dst,src_hull,dst_hull,params_x,pa
         for j in range(src_shapes.shape[0]):
             K[i,j] = np.linalg.norm(interior_points[i,:] - src_shapes[j,:]) + 0.00000001
             K[i,j] = U(K[i,j])
-
+    print("interior pts:",interior_points.shape)
     P = np.hstack((interior_points, np.ones((len(interior_points), 1))))
     I = np.identity(len(interior_points)+3)
     l = 0.00000001
@@ -66,6 +69,8 @@ def TPS(img_src,img_dst,final_shapes_src,final_shapes_dst,img_src_original):
     
     final_shapes_src = np.reshape(final_shapes_src, (68,2)).astype('int32')
     final_shapes_dst = np.reshape(final_shapes_dst, (68,2)).astype('int32')
+    print(np.shape(final_shapes_src))
+    print(np.shape(final_shapes_dst))
 
     src_hull,src_mask,center_src,dst_hull,dst_mask,center_dst = hull_masks(img_src,img_dst,final_shapes_src,final_shapes_dst)
 

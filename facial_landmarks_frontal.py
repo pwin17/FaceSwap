@@ -43,13 +43,20 @@ def get_faces(img):
 
     return rects
 
-def main():
+def SwapFaces(frame,method):
 
-    method = "TPS" #"TRI"
-    img_src = cv2.imread('./data/impractical_jokers.jpg')
-    img_dst = cv2.imread('./data/impractical_jokers.jpg')
+    # method = "TPS" #"TRI"
+    # img_src = cv2.imread('./data/impractical_jokers.jpg')
+    # img_dst = cv2.imread('./data/impractical_jokers.jpg')
+
+    img_src = frame.copy()
+    img_dst = frame.copy()
+
     img_src_original = img_src.copy()
-    # cv2.imshow('img_src',img_src)
+    cv2.imshow('img_src',img_src)
+    cv2.imshow('img_dst',img_dst)
+
+    cv2.waitKey()
 
     img_src_gray = cv2.cvtColor(img_src,cv2.COLOR_BGR2GRAY)
 
@@ -67,48 +74,36 @@ def main():
     if method=="TRI":
         img_swap1 = TRI(img_src,img_dst,final_shapes_src,final_shapes_dst)
         img_swap1 = cv2.seamlessClone(np.uint8(img_swap1),img_src, dst_mask,center_dst, cv2.NORMAL_CLONE)
+        
         img_swap2 = TRI(img_src,img_swap1,final_shapes_dst,final_shapes_src)
         img_swap2 = cv2.seamlessClone(np.uint8(img_swap2),img_swap1, src_mask, center_src, cv2.NORMAL_CLONE)
-        cv2.imshow('blended final_img3',img_swap2)
+        cv2.imshow('blended final_img2',img_swap2)
 
     elif method == "TPS":
         
         img_swap1 = TPS(img_src,img_dst,final_shapes_src,final_shapes_dst,img_src_original)
-        cv2.imshow('one face swap,b4 blend',img_swap1)
-        cv2.imshow('src img',img_src)
-        cv2.imshow('dst img',img_dst)
-        
-        cv2.imshow('src mask',src_mask)
-        cv2.imshow('dst mask',dst_mask)
-
-
         img_swap1 = cv2.seamlessClone(np.uint8(img_swap1),img_src, src_mask,center_src, cv2.NORMAL_CLONE)
-
-        cv2.imshow('blended final_img1',img_swap1)
+        cv2.imshow('swap1',img_swap1)
+        cv2.waitKey()
         img_swap2 = TPS(img_swap1,img_src,final_shapes_dst,final_shapes_src,img_swap1)
-        cv2.imshow('two face swap,b4 blend',img_swap2)
-
         img_swap2 = cv2.seamlessClone(np.uint8(img_swap2),img_swap1, dst_mask, center_dst, cv2.NORMAL_CLONE)
-
         cv2.imshow('blended final_img2',img_swap2)
-        # cv2.imshow('img src tps2',img_src)
-        # cv2.imshow('img_swap2',img_swap2)
-        # cv2.imshow('img_swap1',img_swap1)
 
-        # cv2.waitKey(0)
-
-    # cv2.imshow('warp2',img_swap2)
-    # src_hull,src_mask,center_src,dst_hull,dst_mask,center_dst = hull_masks(img_src,img_dst,final_shapes_src,final_shapes_dst)
-    # cv2.imshow('src mask',src_mask)
-    # combined_mask = cv2.bitwise_not(cv2.bitwise_or(src_mask,dst_mask))
-    # cv2.imshow('combined mask',combined_mask)
-    # no_face_img = cv2.bitwise_and(combined_mask,img_src)
-    # cv2.imshow('no faces',no_face_img)
-    
-    # final_img2 = cv2.seamlessClone(np.uint8(final_img1), np.uint8(final_img1), dst_mask, center_dst, cv2.NORMAL_CLONE)
-    # cv2.imshow('final output2',final_img2)
     cv2.waitKey(0)
 
 
 if __name__=="__main__": 
-    main()
+    video_path = r'./data/twofaces.mp4'
+    cap = cv2.VideoCapture(video_path)
+    method = "TPS"
+    while(cap.isOpened()):
+        ret,frame = cap.read()
+
+    # frame = 1
+    # method = 1
+        if ret:
+            SwapFaces(frame,method)
+        else:
+            print("Video completed")
+            break
+    # main()

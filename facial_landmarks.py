@@ -17,12 +17,12 @@ def rect_contains(rect, point) :
 
 
 def get_faces(img):
-    altFaceDetector = dlib.get_frontal_face_detector()
-    # dnnFaceDetector = dlib.cnn_face_detection_model_v1("./packages/mmod_human_face_detector.dat")
+    # altFaceDetector = dlib.get_frontal_face_detector()
+    dnnFaceDetector = dlib.cnn_face_detection_model_v1("./packages/mmod_human_face_detector.dat")
     
     img_gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-    # rects = dnnFaceDetector(img_gray, 1)
-    rects = altFaceDetector(img_gray, 1)
+    rects = dnnFaceDetector(img_gray, 1)
+    # rects = altFaceDetector(img_gray, 1)
     # rects1 = dnnFaceDetector(img_gray, 1)
     # print(rects[0])
     # print(rects[0].bottom())
@@ -47,7 +47,7 @@ def get_facial_landmarks(img,rects):
     landmark_detector = dlib.shape_predictor("./packages/shape_predictor_68_face_landmarks.dat")
     final_shapes = []
     for rect in rects:
-        shape = landmark_detector(img,rect)
+        shape = landmark_detector(img,rect.rect)
         shape_np = np.zeros((68, 2), dtype="int")
         for i in range(0, 68):
             shape_np[i] = (shape.part(i).x, shape.part(i).y)
@@ -61,8 +61,8 @@ def draw_facial_landmarks(img_orig,final_shapes):
     count = 1
     for shape in final_shapes:
         for coord in shape:
-            # cv2.circle(img,coord,2,(0,0,255,-1))
-            cv2.putText(img,str(count),coord, cv2.FONT_HERSHEY_SIMPLEX, 0.25,  (0,0,255), 1, cv2.LINE_AA)
+            cv2.circle(img,coord,2,(0,0,255,-1))
+            # cv2.putText(img,str(count),coord, cv2.FONT_HERSHEY_SIMPLEX, 0.25,  (0,0,255), 1, cv2.LINE_AA)
             count += 1
 
     return img
@@ -164,6 +164,22 @@ def getSourceLocations(A, bary_coords,img_src):
     # cv2.imshow('extraction points',img_src)
     # cv2.waitKey(0)
     return x_source,y_source
+
+def copyPixels(x_source,y_source,x_target,y_target,img_src,img_dst):
+    # cv2.imshow("before copying src:",img_src)
+    # cv2.imshow("before copying dst:",img_dst)
+    # print("x_source:",len(x_source))
+    for i in range(len(x_source)):
+        # y_target[i] = min(max(y_target[i],0),img_dst.shape[0]-1)
+        # x_target[i] = min(max(x_target[i],0),img_dst.shape[0]-1)
+
+        img_dst[y_target[i]][x_target[i]] = img_src[y_source[i]][x_source[i]]
+    # cv2.imshow("after copying src:",img_src)
+    # cv2.imshow("after copying dst:",img_dst)
+    # cv2.imshow("after copying src:",img_src)
+    
+    # cv2.waitKey()
+    return img_dst
 
 def copyPixels(x_source,y_source,x_target,y_target,img_src,img_dst):
     # cv2.imshow("before copying src:",img_src)
@@ -310,17 +326,53 @@ def warp_TPS(src_shapes,dst_shapes,img_src,img_dst,src_hull,dst_hull,params_x,pa
     return locs, interior_points
     # print("M shape:",M.shape)
 
+def warp_TPS2(src_shapes,dst_shapes,img_src,img_dst,src_hull,dst_hull,params_x,params_y,M):
+    interior_points = []
+    U = lambda r: (r**2)*np.log(r**2)
+    for i in range(img_dst.shape[0]):
+        for j in range(img_dst.shape[1]):
+            if(cv2.pointPolygonTest(dst_hull,(i,j),False) >=0):
+                interior_points.append([i,j])
+    interior_points = np.array(interior_points)
+    print("interior pts:",interior_points.shape)
+    
+    K = np.zeros((interior_points.shape[0],dst_shapes.shape[0]))
+    for i in range(interior_points.shape[0]):
+        for j in range(dst_shapes.shape[0]):
+            K[i,j] = np.linalg.norm(interior_points[i,:] - src_shapes[j,:]) + 0.000001
+            K[i,j] = U(K[i,j])
+
+    print("K shape:",K.shape)
+    P = np.hstack((interior_points, np.ones((len(interior_points), 1))))
+    print("P shape",P.shape)
+    params = np.vstack((params_x[:-3],params_y[:-3]))
+    # ax_x,ay_x,a1_x = params_x[-3],params_x[-2],params_x[-1]
+    # ax_y,ay_y,a1_y = params_y[-3],params_y[-2],params_y[-1]
+    print("params shape:",params.shape)
+    loc_sum1 = np.matmul(K,params.T)
+    P_params = np.vstack((params_x[-3:],params_y[-3:]))
+    loc_sum2 = np.matmul(P,P_params.T)
+
+    locs = loc_sum1 + loc_sum2
+    print("locs shape:",locs.shape)    
+    return locs, interior_points
+
 def main():
 
-    method = "TPS" #"TRI"
+    method = "TRI" #"TRI"
 
-    img_src = cv2.imread('./data/mes.jpg')
+
+    img_src = cv2.imread('./data/two_people.jpg')
+    img_src_original = img_src.copy()
+
     # print(img_src.shape)
-    img_src =cv2.resize(img_src,(500,500))
+    # img_src =cv2.resize(img_src,(500,500))
+    img_src_original = img_src.copy()
     img_src_gray = cv2.cvtColor(img_src,cv2.COLOR_BGR2GRAY)
 
     rects= get_faces(img_src)
-    final_shapes_src = get_facial_landmarks(img_src_gray,rects)
+
+    final_shapes_src = get_facial_landmarks(img_src_gray,[rects[0]])
     # print((final_shapes[0]).shape)
     
     landmark_img_src = draw_facial_landmarks(img_src,final_shapes_src)
@@ -330,27 +382,31 @@ def main():
     triangleList_src, delaunay_img = draw_delaunay(img_src, subdiv, (255,255,255))
     
 
-    # cv2.imshow('face landmarks',landmark_img_src)
+    # cv2.imshow('src face landmarks',landmark_img_src)
     # if cv2.waitKey(0)==ord('q'):
     #     cv2.destroyAllWindows()
     # cv2.imshow('delaunay_img',delaunay_img)
 
     # -------------------------------------------------------
-    img_dst = cv2.imread('./data/ron.jpg')
+
+    img_dst = cv2.imread('./data/two_people.jpg')
+
     # print(img_dst.shape)
-    img_dst =cv2.resize(img_dst,(500,500))
+    # img_dst =cv2.resize(img_dst,(500,500))
+    img_dst_original = img_dst.copy()
     img_dst_gray = cv2.cvtColor(img_dst,cv2.COLOR_BGR2GRAY)
 
     rects= get_faces(img_dst)
-    final_shapes_dst = get_facial_landmarks(img_dst_gray,rects)
+    final_shapes_dst = get_facial_landmarks(img_dst_gray,[rects[1]])
     # print('dst landmarks: ',np.shape(final_shapes_dst))
 
 
     landmark_img_dst = draw_facial_landmarks(img_dst,final_shapes_dst)
 
-    # cv2.imshow('face landmarks',landmark_img_dst)
+    # cv2.imshow('dst face landmarks',landmark_img_dst)
     # if cv2.waitKey(0)==ord('q'):
     #     cv2.destroyAllWindows()
+
     if method=="TRI":
     
         subdiv = get_delaunay_triangulation(img_dst,final_shapes_dst)
@@ -400,37 +456,13 @@ def main():
         src_hull = cv2.convexHull(final_shapes_src, False)
         dst_hull = cv2.convexHull(final_shapes_dst, False)
         print(src_hull.shape)
-        # cv2.drawContours(img_src, [src_hull], -1, (255,0,0), 3, cv2.CHAIN_APPROX_NONE)
-        # cv2.drawContours(img_dst, [dst_hull], -1, (255,0,0), 3, cv2.CHAIN_APPROX_NONE)
-        # cv2.imshow('img_src with convex:',img_src)
-        # cv2.imshow('img_dst with convex:',img_dst)
-        # cv2.waitKey(0)
-        # count = 0
-        # img_src_copy = img_src.copy()
-        # for i in range(img_src.shape[0]):
-        #     for j in range(img_src.shape[1]):
-        #         res = cv2.pointPolygonTest(src_hull,(i,j),False)
-        #         if(res==1):
-        #             count +=1
-        #             img_src_copy[j,i] = (255,0,0)
-        # cv2.imshow('inside points',img_src_copy)
-        # cv2.waitKey(0)
-        # print("inside points total:",count)
+
 
         src_mask = np.zeros_like(img_src)
         src_mask = cv2.fillPoly(src_mask, [src_hull], color =(255,255,255))
         dst_mask = np.zeros_like(img_dst)
         dst_mask = cv2.fillPoly(dst_mask, [dst_hull], color =(255,255,255))
-        # cv2.imshow('img_src mask:',src_mask)
-        # cv2.imshow('img_dst mask:',dst_mask)
-        # cv2.waitKey(0)
 
-        src_seg = cv2.bitwise_and(img_src,src_mask)
-        dst_seg = cv2.bitwise_and(img_dst,dst_mask)
-        # cv2.imshow('img_src seg:',src_seg)
-        # cv2.imshow('img_dst seg:',dst_seg)
-        # cv2.waitKey()
-        # exit()
         params_x, params_y, M = get_TPS_params(final_shapes_src, final_shapes_dst)
         # print(params_x)
         print('shapes: ',np.shape(params_x),np.shape(params_y))
@@ -442,7 +474,16 @@ def main():
         interior_pts = interior_pts.astype(np.int32)
         warp_TPS_img = copyPixels(x_source=locs[:,0],y_source=locs[:,1],x_target=interior_pts[:,0],y_target=interior_pts[:,1],\
             img_src=img_dst,img_dst=img_src)
-        cv2.imshow('warp_TPS:',warp_TPS_img)
+
+        # cv2.imshow('warp_TPS:',warp_TPS_img)
+        # cv2.waitKey(0)
+        r = cv2.boundingRect(src_hull)
+        center = (r[0]+(r[2]//2), r[1]+(r[3]//2))
+
+        final_img = cv2.seamlessClone(np.uint8(warp_TPS_img), img_src_original, src_mask, center, cv2.NORMAL_CLONE)
+        cv2.imshow('blended_img:',final_img)
+
         cv2.waitKey(0)
+
 if __name__=="__main__": 
     main()

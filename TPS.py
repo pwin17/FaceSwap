@@ -6,6 +6,7 @@ from utils import *
 def get_TPS_params(src_shapes,dst_shapes):
     # 68 x 2 shape
     U = lambda r: (r**2)*np.log(r**2)
+
     K = np.zeros((len(src_shapes),len(src_shapes)))
     l = 0.00000001
     # print("src shapes like:",(src_shapes).shape)
@@ -63,6 +64,8 @@ def warp_TPS(src_shapes,dst_shapes,img_src,img_dst,src_hull,dst_hull,params_x,pa
 
 def TPS(img_src,img_dst,final_shapes_src,final_shapes_dst,img_src_original):
     
+    final_shapes_src = np.reshape(final_shapes_src, (68,2)).astype('int32')
+    final_shapes_dst = np.reshape(final_shapes_dst, (68,2)).astype('int32')
 
     src_hull,src_mask,center_src,dst_hull,dst_mask,center_dst = hull_masks(img_src,img_dst,final_shapes_src,final_shapes_dst)
 

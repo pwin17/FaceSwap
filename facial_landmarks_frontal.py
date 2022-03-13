@@ -11,7 +11,7 @@ def get_facial_landmarks(img,rects):
     landmark_detector = dlib.shape_predictor("./packages/shape_predictor_68_face_landmarks.dat")
     final_shapes = []
     for rect in rects:
-        shape = landmark_detector(img,rect)
+        shape = landmark_detector(img,rect.rect)
         shape_np = np.zeros((68, 2), dtype="int")
         for i in range(0, 68):
             shape_np[i] = (shape.part(i).x, shape.part(i).y)
@@ -29,18 +29,25 @@ def draw_facial_landmarks(img_orig,final_shapes):
     return img
 
 def get_faces(img):
-    altFaceDetector = dlib.get_frontal_face_detector()
-    # dnnFaceDetector = dlib.cnn_face_detection_model_v1("./packages/mmod_human_face_detector.dat")
-    print('loaded detector')
+
     img_gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-    rects = altFaceDetector(img_gray, 1)
+    # altFaceDetector = dlib.get_frontal_face_detector()
+    # rects = altFaceDetector(img_gray, 1)
+
+    dnnFaceDetector = dlib.cnn_face_detection_model_v1("./packages/mmod_human_face_detector.dat")
+    rects = dnnFaceDetector(img_gray, 1)
+
+    
+   
+    
+
     return rects
 
 def main():
 
     method = "TPS" #"TRI"
-    img_src = cv2.imread('./data/two_people.jpg')
-    img_dst = cv2.imread('./data/two_people.jpg')
+    img_src = cv2.imread('./data/impractical_jokers.jpg')
+    img_dst = cv2.imread('./data/impractical_jokers.jpg')
     img_src_original = img_src.copy()
     # cv2.imshow('img_src',img_src)
 
@@ -67,14 +74,21 @@ def main():
     elif method == "TPS":
         
         img_swap1 = TPS(img_src,img_dst,final_shapes_src,final_shapes_dst,img_src_original)
-        cv2.imshow('one face swap,b4 blend')
-        img_swap1 = cv2.seamlessClone(np.uint8(img_swap1),img_src, dst_mask,center_dst, cv2.NORMAL_CLONE)
+        cv2.imshow('one face swap,b4 blend',img_swap1)
+        cv2.imshow('src img',img_src)
+        cv2.imshow('dst img',img_dst)
+        
+        cv2.imshow('src mask',src_mask)
+        cv2.imshow('dst mask',dst_mask)
+
+
+        img_swap1 = cv2.seamlessClone(np.uint8(img_swap1),img_src, src_mask,center_src, cv2.NORMAL_CLONE)
 
         cv2.imshow('blended final_img1',img_swap1)
         img_swap2 = TPS(img_swap1,img_src,final_shapes_dst,final_shapes_src,img_swap1)
-        cv2.imshow('two face swap,b4 blend')
+        cv2.imshow('two face swap,b4 blend',img_swap2)
 
-        img_swap2 = cv2.seamlessClone(np.uint8(img_swap2),img_swap1, src_mask, center_src, cv2.NORMAL_CLONE)
+        img_swap2 = cv2.seamlessClone(np.uint8(img_swap2),img_swap1, dst_mask, center_dst, cv2.NORMAL_CLONE)
 
         cv2.imshow('blended final_img2',img_swap2)
         # cv2.imshow('img src tps2',img_src)

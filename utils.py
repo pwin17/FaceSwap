@@ -7,6 +7,11 @@ def copyPixels(x_source,y_source,x_target,y_target,img_src,img_dst):
         img_dst[y_target[i]][x_target[i]] = img_src[y_source[i]][x_source[i]]
     return img_dst
 
+def copyPixelsTPS(x_source,y_source,x_target,y_target,img_src,img_dst):
+    for i in range(len(x_source)):
+        img_dst[x_target[i]][y_target[i]] = img_src[x_source[i]][y_source[i]]
+    return img_dst
+
 def rect_contains(rect, point) :
     if point[0] < rect[0] :
         return False
@@ -33,9 +38,6 @@ def draw_rects_frontal(rects,img_orig):
         cv2.rectangle(img,two_pts[0],two_pts[1],(0,255,0),3)
     return img
 
-
-
-
 def check_triangulation_order(img_src,triangleList_src,img_dst,triangleList_dst):
     
     for t_s,t_d in zip(triangleList_src,triangleList_dst) :
@@ -44,7 +46,6 @@ def check_triangulation_order(img_src,triangleList_src,img_dst,triangleList_dst)
         pt2 = (int(t_s[2]), int(t_s[3]))
         pt3 = (int(t_s[4]), int(t_s[5]))
 
-        # if rect_contains(r, pt1) and rect_contains(r, pt2) and rect_contains(r, pt3) :
         cv2.line(img_src_copy, pt1, pt2, (255,0,0), 1, cv2.LINE_AA, 0)
         cv2.line(img_src_copy, pt2, pt3, (255,0,0), 1, cv2.LINE_AA, 0)
         cv2.line(img_src_copy, pt3, pt1, (255,0,0), 1, cv2.LINE_AA, 0)
@@ -54,7 +55,6 @@ def check_triangulation_order(img_src,triangleList_src,img_dst,triangleList_dst)
         pt2d= (int(t_d[2]), int(t_d[3]))
         pt3d = (int(t_d[4]), int(t_d[5]))
 
-        # if rect_contains(r, pt1) and rect_contains(r, pt2) and rect_contains(r, pt3) :
         cv2.line(img_dst_copy, pt1d, pt2d, (0,0,255), 1, cv2.LINE_AA, 0)
         cv2.line(img_dst_copy, pt2d, pt3d, (0,0,255), 1, cv2.LINE_AA, 0)
         cv2.line(img_dst_copy, pt3d, pt1d, (0,0,255), 1, cv2.LINE_AA, 0)
@@ -62,7 +62,7 @@ def check_triangulation_order(img_src,triangleList_src,img_dst,triangleList_dst)
         # cv2.imshow('dst triangles',img_dst_copy)
 
         # cv2.waitKey(0)
-        # cv2.destroyWindow('')
+
 
 def hull_masks(img_src,img_dst,final_shapes_src,final_shapes_dst):
 

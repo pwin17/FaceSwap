@@ -37,14 +37,23 @@ def get_TPS_params(src_shapes,dst_shapes):
 
 def warp_TPS(src_shapes,dst_shapes,img_src,img_dst,src_hull,dst_hull,params_x,params_y,M):
     interior_points = []
-    cv2.imshow("warp_TPS src:",img_src)
-    cv2.imshow("warp_TPS dst:",img_dst)
-    cv2.waitKey()
+    img_src_hull = img_src.copy()
+    # cv2.drawContours(img_src_hull,[src_hull],-1,(0,0,255),4)
+    # cv2.imshow("hull viz",img_src_hull)
+    # cv2.waitKey(0)
+    # cv2.imshow("warp_TPS src:",img_src_hull)
+    # cv2.imshow("warp_TPS dst:",img_dst)
+    # cv2.waitKey()
     U = lambda r: (r**2)*np.log(r**2)
     for i in range(img_src.shape[0]):
         for j in range(img_src.shape[1]):
-            if(cv2.pointPolygonTest(src_hull,(i,j),False) >=0):
-                interior_points.append([i,j])
+            # print("i,j: ",i,j)
+            if(cv2.pointPolygonTest(src_hull,(j,i),False) >=0):
+                # print("added interior pts")
+                img_src_hull[i,j]=[0,255,0]
+                interior_points.append([j,i])
+    cv2.imshow('hull color',img_src_hull)
+    cv2.waitKey()
     interior_points = np.array(interior_points)
     
     K = np.zeros((interior_points.shape[0],src_shapes.shape[0]))
@@ -69,18 +78,20 @@ def TPS(img_src,img_dst,final_shapes_src,final_shapes_dst,img_src_original):
     
     final_shapes_src = np.reshape(final_shapes_src, (68,2)).astype('int32')
     final_shapes_dst = np.reshape(final_shapes_dst, (68,2)).astype('int32')
-    print(np.shape(final_shapes_src))
-    print(np.shape(final_shapes_dst))
+    # print(np.shape(final_shapes_src))
+    # print(np.shape(final_shapes_dst))
 
     src_hull,src_mask,center_src,dst_hull,dst_mask,center_dst = hull_masks(img_src,img_dst,final_shapes_src,final_shapes_dst)
 
     params_x, params_y, M = get_TPS_params(final_shapes_src, final_shapes_dst)
-
+    # cv2.imshow('src hull',src_hull)
+    # print("src hull:", src_hull)
+    
     locs,interior_pts  = warp_TPS(final_shapes_src,final_shapes_dst,img_src,img_dst,src_hull,dst_hull,params_x,params_y,M)
     locs = locs.astype(np.int32)
     img_src_copy = img_src.copy()
     interior_pts = interior_pts.astype(np.int32)
-    warp_TPS_img = copyPixels(x_source=locs[:,0],y_source=locs[:,1],x_target=interior_pts[:,0],y_target=interior_pts[:,1],\
+    warp_TPS_img = copyPixelsTPS(x_source=locs[:,1],y_source=locs[:,0],x_target=interior_pts[:,1],y_target=interior_pts[:,0],\
         img_src=img_dst,img_dst=img_src_copy)
 
     

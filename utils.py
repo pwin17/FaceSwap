@@ -3,8 +3,22 @@ import numpy as np
 
 
 def copyPixels(x_source,y_source,x_target,y_target,img_src,img_dst):
+    print("x source max",np.max(x_source))
+    print("y source shape:",np.max(y_source))
+    print("x target shape:",np.max(x_target))
+    print("y target shape:",np.max(y_target))
     for i in range(len(x_source)):
         img_dst[y_target[i]][x_target[i]] = img_src[y_source[i]][x_source[i]]
+    return img_dst
+
+def copyPixelsTPS(x_source,y_source,x_target,y_target,img_src,img_dst):
+    print("x source max",np.max(x_source))
+    print("y source shape:",np.max(y_source))
+    print("x target shape:",np.max(x_target))
+    print("y target shape:",np.max(y_target))
+
+    for i in range(len(x_source)):
+        img_dst[x_target[i]][y_target[i]] = img_src[x_source[i]][y_source[i]]
     return img_dst
 
 def rect_contains(rect, point) :

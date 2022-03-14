@@ -36,27 +36,22 @@ def get_faces(img):
 
     dnnFaceDetector = dlib.cnn_face_detection_model_v1("./packages/mmod_human_face_detector.dat")
     rects = dnnFaceDetector(img_gray, 1)
-
-    
-   
-    
-
     return rects
 
 def SwapFaces(frame,method):
 
-    # method = "TPS" #"TRI"
-    # img_src = cv2.imread('./data/impractical_jokers.jpg')
-    # img_dst = cv2.imread('./data/impractical_jokers.jpg')
+    method = "TPS" #"TRI"
+    img_src = cv2.imread('./data/two_people.jpg')
+    img_dst = cv2.imread('./data/two_people.jpg')
 
-    img_src = frame.copy()
-    img_dst = frame.copy()
+    # img_src = frame.copy()
+    # img_dst = frame.copy()
 
     img_src_original = img_src.copy()
-    cv2.imshow('img_src',img_src)
-    cv2.imshow('img_dst',img_dst)
+    # cv2.imshow('img_src',img_src)
+    # cv2.imshow('img_dst',img_dst)
 
-    cv2.waitKey()
+    # cv2.waitKey()
 
     img_src_gray = cv2.cvtColor(img_src,cv2.COLOR_BGR2GRAY)
 
@@ -68,6 +63,8 @@ def SwapFaces(frame,method):
     rects= get_faces(img_dst)
     final_shapes_dst = get_facial_landmarks(img_dst_gray,[rects[1]])
     landmark_img_dst = draw_facial_landmarks(img_dst,final_shapes_dst)
+    # cv2.imshow('face landmarks',landmark_img_dst)
+    # cv2.waitKey(0)
     final_shapes_src = get_facial_landmarks(img_src_gray,[rects[0]])
     landmark_img_src = draw_facial_landmarks(img_src,final_shapes_src)
     src_hull,src_mask,center_src,dst_hull,dst_mask,center_dst = hull_masks(img_src,img_dst,final_shapes_src,final_shapes_dst)
@@ -82,10 +79,19 @@ def SwapFaces(frame,method):
     elif method == "TPS":
         
         img_swap1 = TPS(img_src,img_dst,final_shapes_src,final_shapes_dst,img_src_original)
+        # img_swap1 = TPS(img_dst,img_src,final_shapes_dst,final_shapes_src,img_src_original)
+
         img_swap1 = cv2.seamlessClone(np.uint8(img_swap1),img_src, src_mask,center_src, cv2.NORMAL_CLONE)
         cv2.imshow('swap1',img_swap1)
-        cv2.waitKey()
+        # cv2.imshow('img src',img_src)
+        # print("finjal shapes src:",np.shape(final_shapes_src))
+        # print("finjal shapes dst:",np.shape(final_shapes_dst))
+
+
+        # cv2.waitKey()
         img_swap2 = TPS(img_swap1,img_src,final_shapes_dst,final_shapes_src,img_swap1)
+        # img_swap2 = TPS(img_swap1,img_dst,final_shapes_src,final_shapes_dst,img_swap1)
+
         img_swap2 = cv2.seamlessClone(np.uint8(img_swap2),img_swap1, dst_mask, center_dst, cv2.NORMAL_CLONE)
         cv2.imshow('blended final_img2',img_swap2)
 
@@ -93,17 +99,18 @@ def SwapFaces(frame,method):
 
 
 if __name__=="__main__": 
-    video_path = r'./data/twofaces.mp4'
-    cap = cv2.VideoCapture(video_path)
-    method = "TPS"
-    while(cap.isOpened()):
-        ret,frame = cap.read()
+    # video_path = r'./data/twofaces.mp4'
+    # cap = cv2.VideoCapture(video_path)
+    # method = "TPS"
+    # while(cap.isOpened()):
+    #     ret,frame = cap.read()
 
-    # frame = 1
-    # method = 1
-        if ret:
-            SwapFaces(frame,method)
-        else:
-            print("Video completed")
-            break
+    frame = 1
+    method = 1
+        # if ret:
+    SwapFaces(frame,method)
+            # break
+        # else:
+        #     print("Video completed")
+        #     break
     # main()

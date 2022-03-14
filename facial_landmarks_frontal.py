@@ -41,17 +41,13 @@ def get_faces(img):
 def SwapFaces(frame,method):
 
     method = "TPS" #"TRI"
-    img_src = cv2.imread('./data/two_people.jpg')
-    img_dst = cv2.imread('./data/two_people.jpg')
+    img_src = cv2.imread('./data/put-zel.jpg')
+    img_dst = cv2.imread('./data/put-zel.jpg')
 
     # img_src = frame.copy()
     # img_dst = frame.copy()
 
     img_src_original = img_src.copy()
-    # cv2.imshow('img_src',img_src)
-    # cv2.imshow('img_dst',img_dst)
-
-    # cv2.waitKey()
 
     img_src_gray = cv2.cvtColor(img_src,cv2.COLOR_BGR2GRAY)
 
@@ -61,13 +57,15 @@ def SwapFaces(frame,method):
     img_dst_gray = cv2.cvtColor(img_dst,cv2.COLOR_BGR2GRAY)
 
     rects= get_faces(img_dst)
+
     final_shapes_dst = get_facial_landmarks(img_dst_gray,[rects[1]])
     landmark_img_dst = draw_facial_landmarks(img_dst,final_shapes_dst)
-    # cv2.imshow('face landmarks',landmark_img_dst)
-    # cv2.waitKey(0)
+
     final_shapes_src = get_facial_landmarks(img_src_gray,[rects[0]])
     landmark_img_src = draw_facial_landmarks(img_src,final_shapes_src)
+
     src_hull,src_mask,center_src,dst_hull,dst_mask,center_dst = hull_masks(img_src,img_dst,final_shapes_src,final_shapes_dst)
+    
     if method=="TRI":
         img_swap1 = TRI(img_src,img_dst,final_shapes_src,final_shapes_dst)
         img_swap1 = cv2.seamlessClone(np.uint8(img_swap1),img_src, dst_mask,center_dst, cv2.NORMAL_CLONE)
@@ -79,29 +77,18 @@ def SwapFaces(frame,method):
     elif method == "TPS":
         
         img_swap1 = TPS(img_src,img_dst,final_shapes_src,final_shapes_dst,img_src_original)
-        # img_swap1 = TPS(img_dst,img_src,final_shapes_dst,final_shapes_src,img_src_original)
-
         img_swap1 = cv2.seamlessClone(np.uint8(img_swap1),img_src, src_mask,center_src, cv2.NORMAL_CLONE)
-        cv2.imshow('swap1',img_swap1)
-        # cv2.imshow('img src',img_src)
-        # print("finjal shapes src:",np.shape(final_shapes_src))
-        # print("finjal shapes dst:",np.shape(final_shapes_dst))
 
-
-        # cv2.waitKey()
         img_swap2 = TPS(img_swap1,img_src,final_shapes_dst,final_shapes_src,img_swap1)
-        # img_swap2 = TPS(img_swap1,img_dst,final_shapes_src,final_shapes_dst,img_swap1)
-
         img_swap2 = cv2.seamlessClone(np.uint8(img_swap2),img_swap1, dst_mask, center_dst, cv2.NORMAL_CLONE)
         cv2.imshow('blended final_img2',img_swap2)
 
     cv2.waitKey(0)
 
-
 if __name__=="__main__": 
     # video_path = r'./data/twofaces.mp4'
     # cap = cv2.VideoCapture(video_path)
-    # method = "TPS"
+    # method = "TRI"
     # while(cap.isOpened()):
     #     ret,frame = cap.read()
 
@@ -109,8 +96,7 @@ if __name__=="__main__":
     method = 1
         # if ret:
     SwapFaces(frame,method)
-            # break
+        #     # break
         # else:
         #     print("Video completed")
         #     break
-    # main()

@@ -61,7 +61,7 @@ class PRN:
         '''
         return self.pos_predictor.predict(image)
 
-    def process(self, input, image_info = None):
+    def process(self, input, index =0, image_info = None):
         ''' process image with crop operation.
         Args:
             input: (h,w,3) array or str(image path). image value range:1~255. 
@@ -101,7 +101,7 @@ class PRN:
                 print('warning: no detected face')
                 return None
 
-            d = detected_faces[0].rect ## only use the first detected face (assume that each input image only contains one face)
+            d = detected_faces[index].rect ## using the face according to the index; 0 for default for images with only 1 face
             left = d.left(); right = d.right(); top = d.top(); bottom = d.bottom()
             old_size = (right - left + bottom - top)/2
             center = np.array([right - (right - left) / 2.0, bottom - (bottom - top) / 2.0 + old_size*0.14])

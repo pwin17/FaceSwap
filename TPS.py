@@ -45,18 +45,19 @@ def warp_TPS(src_shapes,dst_shapes,img_src,img_dst,src_hull,dst_hull,params_x,pa
             if(cv2.pointPolygonTest(src_hull,(j,i),False) >=0):
                 img_src_hull[i,j]=[0,255,0]
                 interior_points.append([j,i])
-
+    cv2.imshow('src hull',img_src_hull)
+    cv2.waitKey()
     interior_points = np.array(interior_points)
-    
+    print("interior pts shape:",np.shape(interior_points))
     K = np.zeros((interior_points.shape[0],src_shapes.shape[0]))
     for i in range(interior_points.shape[0]):
         for j in range(src_shapes.shape[0]):
             K[i,j] = np.linalg.norm(interior_points[i,:] - src_shapes[j,:]) + 0.00000001
             K[i,j] = U(K[i,j])
-
+    
     P = np.hstack((interior_points, np.ones((len(interior_points), 1))))
-    I = np.identity(len(interior_points)+3)
-    l = 0.00000001
+    # I = np.identity(len(interior_points)+3, dtype=np.int)
+    # l = 0.00000001
   
     params = np.vstack((params_x[:-3],params_y[:-3]))
     loc_sum1 = np.matmul(K,params.T)

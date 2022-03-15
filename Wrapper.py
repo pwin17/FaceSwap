@@ -31,30 +31,11 @@ def draw_facial_landmarks(img_orig,final_shapes):
 def get_faces(img):
 
     img_gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-    # altFaceDetector = dlib.get_frontal_face_detector()
-    # rects = altFaceDetector(img_gray, 1)
-
     dnnFaceDetector = dlib.cnn_face_detection_model_v1("./packages/mmod_human_face_detector.dat")
     rects = dnnFaceDetector(img_gray, 1)
     return rects
 
-def SwapFaces(img_src,img_dst,method,swap_logic):
-
-    # method = "TPS" #"TRI"
-    # img_src = cv2.imread('./data/put-zel.jpg')
-    # img_dst = cv2.imread('./data/put-zel.jpg')
-    # cv2.imshow('src',img_src)
-    # cv2.imshow('dst',img_dst)
-    # cv2.waitKey(0)
-
-    # img_src = cv2.resize(img_src,(img_src.shape[1]//2,img_src.shape[0]//2))
-    # img_dst = cv2.resize(img_dst,(img_dst.shape[1]//2,img_dst.shape[0]//2))
-
-    # img_dst = img_dst.resize((img_dst.shape[0]//2,img_dst.shape[1]//2))
-
-    # img_src = frame.copy()
-    # img_dst = frame.copy()
-
+def SwapOneFace(img_src,img_dst,method,swap_logic):
     img_src_original = img_src.copy()
 
     img_src_gray = cv2.cvtColor(img_src,cv2.COLOR_BGR2GRAY)
@@ -62,9 +43,14 @@ def SwapFaces(img_src,img_dst,method,swap_logic):
     img_dst_original = img_dst.copy()
     img_dst_gray = cv2.cvtColor(img_dst,cv2.COLOR_BGR2GRAY)
 
+    print("Getting Faces")
     src_rects= get_faces(img_src)
     dst_rects= get_faces(img_dst)
     num_faces = len(src_rects)
+    print(len(src_rects), len(dst_rects))
+    if len(src_rects)<1 or len(dst_rects)<1:
+        print("One or More Faces Not Found. Exiting...")
+        return None
     
     #Scenario 1 : two ima
     if swap_logic == "swap_within_frame":
@@ -73,6 +59,55 @@ def SwapFaces(img_src,img_dst,method,swap_logic):
     else:
         src_idx = 0
         dst_idx = 0
+    print("Getting Landmarks")
+    final_shapes_dst = get_facial_landmarks(img_dst_gray,[dst_rects[dst_idx]])
+    landmark_img_dst = draw_facial_landmarks(img_dst,final_shapes_dst)
+
+    final_shapes_src = get_facial_landmarks(img_src_gray,[src_rects[src_idx]])
+    landmark_img_src = draw_facial_landmarks(img_src,final_shapes_src)
+
+    src_hull,src_mask,center_src,dst_hull,dst_mask,center_dst = hull_masks(img_src,img_dst,final_shapes_src,final_shapes_dst)
+    print("Swapping")
+    if method=="TRI":
+        img_swap1 = TRI(img_src,img_dst,final_shapes_src,final_shapes_dst)
+        img_swap1 = cv2.seamlessClone(np.uint8(img_swap1), img_dst, dst_mask, center_dst, cv2.NORMAL_CLONE)
+        # cv2.imshow('blended final_img1',img_swap1)
+        # cv2.waitKey(0)
+
+    elif method == "TPS":
+        
+        img_swap1 = TPS(img_src,img_dst,final_shapes_src,final_shapes_dst,img_src_original)
+        img_swap1 = cv2.seamlessClone(np.uint8(img_swap1), img_src, src_mask, center_src, cv2.NORMAL_CLONE)
+        # img_swap2 = cv2.resize(img_swap2,(img_swap2.shape[1]*2,img_swap2.shape[0]*2),interpolation=cv2.INTER_LINEAR)
+        # cv2.imshow('blended final_img1',img_swap1)
+        # cv2.waitKey(0)
+    return img_swap1
+
+def SwapTwoFaces(img_src,img_dst,method,swap_logic):
+
+    img_src_original = img_src.copy()
+
+    img_src_gray = cv2.cvtColor(img_src,cv2.COLOR_BGR2GRAY)
+
+    img_dst_original = img_dst.copy()
+    img_dst_gray = cv2.cvtColor(img_dst,cv2.COLOR_BGR2GRAY)
+
+    print("Getting Faces")
+    src_rects= get_faces(img_src)
+    dst_rects= get_faces(img_dst)
+    num_faces = len(src_rects)
+    print(len(src_rects), len(dst_rects))
+    if len(src_rects)<2:
+        print("Two Faces Not Found. Exiting...")
+        return None
+    #Scenario 1 : two ima
+    if swap_logic == "swap_within_frame" or swap_logic=="swap_two_faces_img":
+        src_idx = 0
+        dst_idx = 1
+    else:
+        src_idx = 0
+        dst_idx = 0
+    print("Getting Landmarks")
 
     final_shapes_dst = get_facial_landmarks(img_dst_gray,[dst_rects[dst_idx]])
     landmark_img_dst = draw_facial_landmarks(img_dst,final_shapes_dst)
@@ -81,14 +116,16 @@ def SwapFaces(img_src,img_dst,method,swap_logic):
     landmark_img_src = draw_facial_landmarks(img_src,final_shapes_src)
 
     src_hull,src_mask,center_src,dst_hull,dst_mask,center_dst = hull_masks(img_src,img_dst,final_shapes_src,final_shapes_dst)
+    print("Swapping")
     
     if method=="TRI":
         img_swap1 = TRI(img_src,img_dst,final_shapes_src,final_shapes_dst)
-        img_swap1 = cv2.seamlessClone(np.uint8(img_swap1),img_src, dst_mask,center_dst, cv2.NORMAL_CLONE)
-        
-        img_swap2 = TRI(img_src,img_swap1,final_shapes_dst,final_shapes_src)
+        img_swap1 = cv2.seamlessClone(np.uint8(img_swap1),img_dst, dst_mask, center_dst, cv2.NORMAL_CLONE)
+        # cv2.imshow('blended final_img1',img_swap1)
+        # cv2.waitKey(0)
+        img_swap2 = TRI(img_dst,img_swap1,final_shapes_dst,final_shapes_src)
         img_swap2 = cv2.seamlessClone(np.uint8(img_swap2),img_swap1, src_mask, center_src, cv2.NORMAL_CLONE)
-        cv2.imshow('blended final_img2',img_swap2)
+        # cv2.imshow('blended final_img2',img_swap2)
 
     elif method == "TPS":
         
@@ -98,9 +135,10 @@ def SwapFaces(img_src,img_dst,method,swap_logic):
         img_swap2 = TPS(img_swap1,img_src,final_shapes_dst,final_shapes_src,img_swap1)
         img_swap2 = cv2.seamlessClone(np.uint8(img_swap2),img_swap1, dst_mask, center_dst, cv2.NORMAL_CLONE)
         img_swap2 = cv2.resize(img_swap2,(img_swap2.shape[1]*2,img_swap2.shape[0]*2),interpolation=cv2.INTER_LINEAR)
-        cv2.imshow('blended final_img2',img_swap2)
+    #     cv2.imshow('blended final_img2',img_swap2)
 
-    cv2.waitKey(0)
+    # cv2.waitKey(0)
+    return img_swap2
 
 # 2 imgs, 1 img and 1 vid, 1 vid and None
 def parse_input_types(input1,input2):
@@ -122,48 +160,83 @@ def parse_input_types(input1,input2):
             input_types[i] = 'vid'
 
     if input_types[0]=='img' and input_types[1]=='img':
-        swap_logic ="swp_two_imgs"
+        if input1==input2:
+            swap_logic ="swap_two_faces_img"
+        else:
+            swap_logic ="swap_two_imgs" #Swap one face
     elif (input_types[0]=='vid' and input_types[1]=='img') :
-        swap_logic = "swap_img_in_vid"
+        swap_logic = "swap_img_in_vid" #Swap one face (inside video)
     elif (input_types[0]=='vid' and input_types[1] is None):
-        swap_logic = "swap_within_frame"
+        swap_logic = "swap_within_frame" # Swap two faces 
     else:
         swap_logic = None
 
     return swap_logic
 if __name__=="__main__": 
 
-    # input1 = './data/twofaces.mp4'
-    # input2 = None
+    input1 = './data/two_faces.mp4'
+    input2 = None
 
-    input1 = './data/mes.jpg'
-    input2 = './data/ron.jpg'
-    method = "TPS"
+    
+    # input2 = './data/TestSet/Rambo.jpg'
+    # input1 = './data/TestSet/Test1.mp4'
+    # input2 = './data/TestSet/Scarlett.jpg'
+    # input1 = './data/TestSet/Test3.mp4'
+    method = "TRI"
+    output_name = 'testset4'
 
 
+    # exit()
     swap_logic = parse_input_types(input1,input2)
-    if swap_logic is None:
-        print("Invalid input formats. Please ensure input2 is an image if input 1 is an img, and an image or None if input1 is a video")
-        exit()    
-
-    elif(swap_logic=="swap_within_frame" or swap_logic=="swap_img_in_vid"):
+    print(swap_logic)
+    if(swap_logic=="swap_within_frame"):
         cap = cv2.VideoCapture(input1)
-        img_dst = cv2.imread(input2)
+        i = 1
         while(True):
             ret,img_src = cap.read()
-
             if ret:
-                if swap_logic == "swap_within_frame":
+                if i%25==0:
                     img_dst = img_src.copy()
-                SwapFaces(img_src,img_dst,method,swap_logic)
+                    print(i)
+                    cv2.imwrite(f"./data/outputs/original_{output_name}_{i}.jpg", img_src)
+                    out_img = SwapTwoFaces(img_src,img_dst,method,swap_logic)
+                    if out_img is not None:
+                        cv2.imwrite(f"./data/outputs/{output_name}_{i}.jpg", out_img)
 
             else:
                 print("Video completed")
                 break
-    else:
+            i+=1
+            
+    elif(swap_logic=="swap_img_in_vid"):
+        cap = cv2.VideoCapture(input1)
+        img_dst = cv2.imread(input2)
+        i = 1
+        while(True):
+            ret,img_src = cap.read()
+
+            if ret:
+                if i%15==0:
+                    print(i)
+                    cv2.imwrite(f"./data/outputs/original_{output_name}_{i}.jpg", img_src)
+                    out_img = SwapOneFace(img_dst,img_src,method,swap_logic)
+                    if out_img is not None:
+                        cv2.imwrite(f"./data/outputs/{output_name}_{i}.jpg", out_img)
+            else:
+                print("Video completed")
+                break
+            i+=1
+    elif(swap_logic=="swap_two_imgs"):
         img_src = cv2.imread(input1)
         img_dst = cv2.imread(input2)
-        # img_src = cv2.resize(img_src,(500,500))
-        # img_dst = cv2.resize(img_dst,(500,500))
+        img_src = cv2.resize(img_src,(500,500))
+        img_dst = cv2.resize(img_dst,(500,500))
 
-        SwapFaces(img_src,img_dst,method,swap_logic)
+        SwapOneFace(img_src,img_dst,method,swap_logic)
+    elif(swap_logic=="swap_two_faces_img"):
+        img_src = cv2.imread(input1)
+        img_dst = cv2.imread(input2)
+        SwapTwoFaces(img_src,img_dst,method,swap_logic)
+    else:
+        print("Invalid input formats. Please ensure input2 is an image if input 1 is an img, and an image or None if input1 is a video")
+        exit()    

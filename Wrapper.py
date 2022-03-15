@@ -174,16 +174,17 @@ def parse_input_types(input1,input2):
     return swap_logic
 if __name__=="__main__": 
 
-    input1 = './data/two_faces.mp4'
-    input2 = None
-
-    
+    # input1 = './data/two_faces_reduced.mp4'
+    # input2 = None
+    input1 = './data/nitesh_original.mp4'
+    input2 = './data/ron.jpg'
     # input2 = './data/TestSet/Rambo.jpg'
     # input1 = './data/TestSet/Test1.mp4'
     # input2 = './data/TestSet/Scarlett.jpg'
     # input1 = './data/TestSet/Test3.mp4'
-    method = "TRI"
-    output_name = 'testset4'
+
+    method = "TPS"
+    output_name = 'testset2'
 
 
     # exit()
@@ -211,15 +212,17 @@ if __name__=="__main__":
     elif(swap_logic=="swap_img_in_vid"):
         cap = cv2.VideoCapture(input1)
         img_dst = cv2.imread(input2)
+        img_dst = cv2.resize(img_dst,(int(img_dst.shape[1]/2),int(img_dst.shape[0]/2)))
         i = 1
         while(True):
             ret,img_src = cap.read()
+            img_src = cv2.resize(img_src,(int(img_src.shape[1]/2),int(img_src.shape[0]/2)))
 
             if ret:
                 if i%15==0:
                     print(i)
                     cv2.imwrite(f"./data/outputs/original_{output_name}_{i}.jpg", img_src)
-                    out_img = SwapOneFace(img_dst,img_src,method,swap_logic)
+                    out_img = SwapOneFace(img_src,img_dst,method,swap_logic)
                     if out_img is not None:
                         cv2.imwrite(f"./data/outputs/{output_name}_{i}.jpg", out_img)
             else:

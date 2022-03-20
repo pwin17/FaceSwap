@@ -66,9 +66,10 @@ def SwapOneFace(img_src,img_dst,method,swap_logic,resize=False):
     print("Getting Landmarks")
     final_shapes_dst = get_facial_landmarks(img_dst_gray,[dst_rects[dst_idx]])
     landmark_img_dst = draw_facial_landmarks(img_dst,final_shapes_dst)
-
+    cv2.imwrite('dst_landmarks.jpg',landmark_img_dst)
     final_shapes_src = get_facial_landmarks(img_src_gray,[src_rects[src_idx]])
     landmark_img_src = draw_facial_landmarks(img_src,final_shapes_src)
+    cv2.imwrite('src_landmarks.jpg',landmark_img_src)
 
     src_hull,src_mask,center_src,dst_hull,dst_mask,center_dst = hull_masks(img_src,img_dst,final_shapes_src,final_shapes_dst)
     print("Swapping")
@@ -113,9 +114,11 @@ def SwapTwoFaces(img_src,img_dst,method,swap_logic, resize=False):
 
     final_shapes_dst = get_facial_landmarks(img_dst_gray,[dst_rects[dst_idx]])
     landmark_img_dst = draw_facial_landmarks(img_dst,final_shapes_dst)
-
+    cv2.imwrite('dst_facial_landmarks.jpg',landmark_img_dst)
     final_shapes_src = get_facial_landmarks(img_src_gray,[src_rects[src_idx]])
     landmark_img_src = draw_facial_landmarks(img_src,final_shapes_src)
+    cv2.imwrite('src_facial_landmarks.jpg',landmark_img_src)
+
 
     src_hull,src_mask,center_src,dst_hull,dst_mask,center_dst = hull_masks(img_src,img_dst,final_shapes_src,final_shapes_dst)
     print("Swapping")
@@ -174,8 +177,8 @@ def parse_input_types(input1,input2):
     return swap_logic
 if __name__=="__main__": 
 
-    input1 = './data/TestSet/Test2.mp4'
-    input2 = None
+    input1 = './data/mes.jpg'
+    input2 = './data/ron.jpg'
 
     # input1 = './data/two_faces.mp4'
     # input2 = None
@@ -189,7 +192,7 @@ if __name__=="__main__":
     # input2 = './data/TestSet/Scarlett.jpg'
     # input1 = './data/TestSet/Test3.mp4'
 
-    method = "TPS"
+    method = "TRI"
     output_name = 'testset20/frame'
 
     if os.path.isdir("./data/outputs/"+output_name.split("/")[0]):
@@ -240,11 +243,17 @@ if __name__=="__main__":
         img_src = cv2.resize(img_src,(500,500))
         img_dst = cv2.resize(img_dst,(500,500))
 
-        SwapOneFace(img_src,img_dst,method,swap_logic)
+        out_img = SwapOneFace(img_src,img_dst,method,swap_logic)
+        if out_img is not None:
+            cv2.imwrite('./data/outputs/img_swap.jpg',out_img)
+
     elif(swap_logic=="swap_two_faces_img"):
         img_src = cv2.imread(input1)
         img_dst = cv2.imread(input2)
-        SwapTwoFaces(img_src,img_dst,method,swap_logic)
+        out_img = SwapTwoFaces(img_src,img_dst,method,swap_logic)
+        if out_img is not None:
+            cv2.imwrite('./data/outputs/frame_swap.jpg',out_img)
+
     else:
         print("Invalid input formats. Please ensure input2 is an image if input 1 is an img, and an image or None if input1 is a video")
         exit()    

@@ -120,9 +120,11 @@ def getSourceLocations(A, bary_coords,img_src):
 def TRI(img_src,img_dst,final_shapes_src,final_shapes_dst):
     subdiv = get_delaunay_triangulation(img_src,final_shapes_src)
     triangleList_src, delaunay_img = draw_delaunay(img_src, subdiv, (255,255,255))
-
+    cv2.imwrite('triangles_src.jpg',delaunay_img)
     subdiv = get_delaunay_triangulation(img_dst,final_shapes_dst)
     triangleList_dst, delaunay_img = draw_delaunay(img_dst, subdiv, (255,255,255))
+    cv2.imwrite('triangles_dst.jpg',delaunay_img)
+
     triangleList_src = sort_triangles(triangleList_src, final_shapes_src, triangleList_dst, final_shapes_dst)
     img_dst_copy = img_dst.copy()
     # Execute this process for every triangle:

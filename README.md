@@ -18,23 +18,23 @@ Instructions to run PRNet:
 
 ## Facial Landmarks
 <p float="left">
-	<img src="https://github.com/niteshjha08/FaceSwap/blob/main/data//outputs/dst_landmarks.jpg" width="350" /> 
-	<img src="https://github.com/niteshjha08/FaceSwap/blob/main/data/outputs/src_landmarks.jpg" width="350" />
+	<img src="https://github.com/pwin17/FaceSwap/blob/main/data//outputs/dst_landmarks.jpg" width="350" /> 
+	<img src="https://github.com/pwin17/FaceSwap/blob/main/data/outputs/src_landmarks.jpg" width="350" />
 </p>
 
 ## Delaunay's Triangulation
 <p float="left">
-	<img src="https://github.com/niteshjha08/FaceSwap/blob/main/data//outputs/triangles_dst.jpg" width="350" /> 
-	<img src="https://github.com/niteshjha08/FaceSwap/blob/main/data/outputs/triangles_src.jpg" width="350" />
+	<img src="https://github.com/pwin17/FaceSwap/blob/main/data//outputs/triangles_dst.jpg" width="350" /> 
+	<img src="https://github.com/pwin17/FaceSwap/blob/main/data/outputs/triangles_src.jpg" width="350" />
 </p>
 
 ## Final Swap
 <p float="center">
-  	<img src="https://github.com/niteshjha08/FaceSwap/blob/main/data/outputs/img_swap.jpg" width="350"/>	
+  	<img src="https://github.com/pwin17/FaceSwap/blob/main/data/outputs/img_swap.jpg" width="350"/>	
 </p>
 
 ## Swap in the same frame
 <p float="left">
-	<img src="https://github.com/niteshjha08/FaceSwap/blob/main/data/two_people.jpg" width="350" /> 
-	<img src="https://github.com/niteshjha08/FaceSwap/blob/main/data/outputs/frame_swap.jpg" width="350" />
+	<img src="https://github.com/pwin17/FaceSwap/blob/main/data/two_people.jpg" width="350" /> 
+	<img src="https://github.com/pwin17/FaceSwap/blob/main/data/outputs/frame_swap.jpg" width="350" />
 </p>

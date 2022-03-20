@@ -17,9 +17,9 @@ Instructions to run PRNet:
 # FaceSwap results
 
 <p float="left">
-	<img src="https://github.com/niteshjha08/FaceSwap/blob/main/data/mes.jpg" width="100" /> 
-	<img src="https://github.com/niteshjha08/FaceSwap/blob/main/data/ron.jpg" width="100" />
-  	<img src="https://github.com/niteshjha08/FaceSwap/blob/main/data/outputs/img_swap.jpg" width="100" />	
+	<img src="https://github.com/niteshjha08/FaceSwap/blob/main/data/mes.jpg" width="200" /> 
+	<img src="https://github.com/niteshjha08/FaceSwap/blob/main/data/ron.jpg" width="200" />
+  	<img src="https://github.com/niteshjha08/FaceSwap/blob/main/data/outputs/img_swap.jpg" width="200" />	
 </p>
 
 ![messi-ronaldo-swap](https://github.com/niteshjha08/FaceSwap/blob/main/data/outputs/img_swap.jpg=200x200)
